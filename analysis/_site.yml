@@ -1,0 +1,17 @@
+name: "SOCAT_pCO2_temperature_conversion"
+output_dir: ../docs
+navbar:
+  title: "SOCAT_pCO2_temperature_conversion"
+  left:
+  - text: Home
+    href: index.html
+  - text: About
+    href: about.html
+  - text: License
+    href: license.html
+output:
+  workflowr::wflow_html:
+    toc: yes
+    toc_float: yes
+    theme: cosmo
+    highlight: textmate
