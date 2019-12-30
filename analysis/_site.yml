@@ -5,6 +5,10 @@ navbar:
   left:
   - text: Home
     href: index.html
+  - text: Temperature conversion
+    href: pCO2_temperature_conversion.html
+  - text: SOCAT revision
+    href: SOCAT_revision.html
   right:
   - icon: fa-github
     text: Source code
