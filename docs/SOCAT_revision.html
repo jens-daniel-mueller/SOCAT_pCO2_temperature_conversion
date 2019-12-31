@@ -527,10 +527,10 @@ This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomjensdanielmuellerSOCATpCO2temperatureconversiontreec6ba8c4f0100f126f49f10c1d415a6c1ff7178c0targetblankc6ba8c4a"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/jens-daniel-mueller/SOCAT_pCO2_temperature_conversion/tree/c6ba8c4f0100f126f49f10c1d415a6c1ff7178c0" target="_blank">c6ba8c4</a> </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomjensdanielmuellerSOCATpCO2temperatureconversiontree5ea3245d7836fa0d7f050f65764cfeb277052ec6targetblank5ea3245a"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/jens-daniel-mueller/SOCAT_pCO2_temperature_conversion/tree/5ea3245d7836fa0d7f050f65764cfeb277052ec6" target="_blank">5ea3245</a> </a>
 </p>
 </div>
-<div id="strongRepositoryversionstrongahrefhttpsgithubcomjensdanielmuellerSOCATpCO2temperatureconversiontreec6ba8c4f0100f126f49f10c1d415a6c1ff7178c0targetblankc6ba8c4a" class="panel-collapse collapse">
+<div id="strongRepositoryversionstrongahrefhttpsgithubcomjensdanielmuellerSOCATpCO2temperatureconversiontree5ea3245d7836fa0d7f050f65764cfeb277052ec6targetblank5ea3245a" class="panel-collapse collapse">
 <div class="panel-body">
 <p>
 Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility. The version displayed above was the version of the Git repository at the time these results were generated. <br><br> Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
@@ -561,7 +561,9 @@ There are no past versions. Publish this analysis with <code>wflow_publish()</co
 </div>
 </div>
 <pre class="r"><code>library(tidyverse)
-library(metR)</code></pre>
+library(metR)
+
+theme_set(theme_bw())</code></pre>
 <div id="socat-data-base" class="section level1">
 <h1>SOCAT data base</h1>
 <p>This study is based on SOCATv2019, thus excluding flag E data. Limitation to observations with given equilibrator temperature probably restricts observations to those made on VOS (excluding bouys).</p>
@@ -653,7 +655,6 @@ df_int %&gt;%
   geom_hline(yintercept = 0)+
   geom_vline(xintercept = 0)+
   scale_fill_viridis_c(name = &quot;log10(nr observations)&quot;)+
-  theme_bw()+
   labs(y=&quot;Latitude (10 deg N intervals)&quot;, x=&quot;Tequi - SST (K)&quot;,
        title = &quot;Difference between insitu and measurement temperature&quot;,
        subtitle = &quot;SOCATv6 data displayed for decades and latitude intervals&quot;)+
@@ -668,7 +669,6 @@ df_int %&gt;%
   labs(y=&quot;Latitude (10 deg N intervals)&quot;, x=&quot;Tequi - SST (K)&quot;,
        title = &quot;Difference between insitu and measurement temperature&quot;,
        subtitle = &quot;SOCATv6 data displayed for decades and latitude intervals&quot;)+
-  theme_bw()+
   facet_wrap(~floor_decade)</code></pre>
 <p><img src="figure/SOCAT_revision.Rmd/plot_observation_distribution-3.png" width="672" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>df_int %&gt;%
@@ -679,7 +679,6 @@ df_int %&gt;%
   labs(y=&quot;Latitude (10 deg N intervals)&quot;, x=&quot;Tequi - SST (K)&quot;,
        title = &quot;Difference between insitu and measurement temperature&quot;,
        subtitle = &quot;SOCATv6 data displayed for decades and latitude intervals&quot;)+
-  theme_bw()+
   facet_wrap(~floor_decade)</code></pre>
 <p><img src="figure/SOCAT_revision.Rmd/plot_observation_distribution-4.png" width="672" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>df_int %&gt;% 
@@ -687,7 +686,6 @@ df_int %&gt;%
   geom_vline(xintercept = 0)+
   geom_point()+
   scale_color_viridis_d(name=&quot;Decade&quot;, direction = -1)+
-  theme_bw()+
   facet_wrap(~lat_int)+
   ylim(200,500)+
   labs(x=&quot;Tequi - SST (K)&quot;, y=&quot;fCO2 (uatm)&quot;,
@@ -720,7 +718,7 @@ map_int %&gt;%
 <pre class="r"><code>map_int %&gt;% 
   ggplot(aes(lon_int, lat_int, fill=d_fCO2_mean))+
   geom_raster()+
-  scale_fill_divergent()</code></pre>
+  scale_fill_divergent(mid=&quot;darkgrey&quot;)</code></pre>
 <p><img src="figure/SOCAT_revision.Rmd/plot_observation_distribution-8.png" width="672" style="display: block; margin: auto;" /></p>
 </div>
 <div id="open-tasks" class="section level1">
