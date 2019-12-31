@@ -411,7 +411,7 @@ div.section {
 
 <h1 class="title toc-ignore">Revision of temperature conversion within SOCAT</h1>
 <h4 class="author">Jens Daniel Müller</h4>
-<h4 class="date">30 December, 2019</h4>
+<h4 class="date">31 December, 2019</h4>
 
 </div>
 
@@ -436,7 +436,7 @@ div.section {
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2019-12-30
+<strong>Last updated:</strong> 2019-12-31
 </p>
 <p>
 <strong>Checks:</strong> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7 <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> 0
@@ -527,17 +527,20 @@ This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomjensdanielmuellerSOCATpCO2temperatureconversiontreed2be7f238d200201a4a18c0c8aa96d1e5ce63602targetblankd2be7f2a"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/jens-daniel-mueller/SOCAT_pCO2_temperature_conversion/tree/d2be7f238d200201a4a18c0c8aa96d1e5ce63602" target="_blank">d2be7f2</a> </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomjensdanielmuellerSOCATpCO2temperatureconversiontreec6ba8c4f0100f126f49f10c1d415a6c1ff7178c0targetblankc6ba8c4a"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/jens-daniel-mueller/SOCAT_pCO2_temperature_conversion/tree/c6ba8c4f0100f126f49f10c1d415a6c1ff7178c0" target="_blank">c6ba8c4</a> </a>
 </p>
 </div>
-<div id="strongRepositoryversionstrongahrefhttpsgithubcomjensdanielmuellerSOCATpCO2temperatureconversiontreed2be7f238d200201a4a18c0c8aa96d1e5ce63602targetblankd2be7f2a" class="panel-collapse collapse">
+<div id="strongRepositoryversionstrongahrefhttpsgithubcomjensdanielmuellerSOCATpCO2temperatureconversiontreec6ba8c4f0100f126f49f10c1d415a6c1ff7178c0targetblankc6ba8c4a" class="panel-collapse collapse">
 <div class="panel-body">
 <p>
 Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility. The version displayed above was the version of the Git repository at the time these results were generated. <br><br> Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
 </p>
 <pre><code>
 Ignored files:
+    Ignored:    .Rhistory
     Ignored:    .Rproj.user/
+    Ignored:    data/_summarized_data/
+    Ignored:    data/meta_information/
 
 </code></pre>
 <p>
@@ -557,8 +560,175 @@ There are no past versions. Publish this analysis with <code>wflow_publish()</co
 </div>
 </div>
 </div>
-<div id="introduction" class="section level2">
-<h2>Introduction</h2>
+<pre class="r"><code>library(tidyverse)
+library(metR)</code></pre>
+<div id="socat-data-base" class="section level1">
+<h1>SOCAT data base</h1>
+<p>This study is based on SOCATv2019, thus excluding flag E data. Limitation to observations with given equilibrator temperature probably restricts observations to those made on VOS (excluding bouys).</p>
+<pre class="r"><code># identify the number of rows to skip by playing around with the import data set functionality in RStudio
+
+df &lt;- read_tsv(here::here(&quot;/data&quot;, &quot;SOCATv2019.tsv&quot;), skip = 5859)
+
+df &lt;- df %&gt;% 
+  select(4:12, 14:16, 19, 21:26)
+
+df &lt;- df %&gt;% 
+  rename(lon = `longitude [dec.deg.E]`, 
+         lat = `latitude [dec.deg.N]`,
+         SST = `SST [deg.C]`, 
+         Tequ = `Tequ [deg.C]`, 
+         dep = `ETOPO2_depth [m]`,
+         dist_land = `dist_to_land [km]`,
+         GVCO2 = `GVCO2 [umol/mol]`,
+         fCO2rec = `fCO2rec [uatm]`)
+
+df &lt;- df %&gt;% 
+  filter(!is.na(Tequ), !is.na(SST))
+
+df_sub_1e6 &lt;- df %&gt;% 
+  sample_n(size = 1e6, replace = FALSE)
+
+df_sub_1e5 &lt;- df %&gt;% 
+  sample_n(size = 1e5, replace = FALSE)
+
+df_sub_1e4 &lt;- df %&gt;% 
+  sample_n(size = 1e4, replace = FALSE)
+
+df  %&gt;% write_csv(here::here(&quot;/data/_summarized_data&quot;, &quot;SOCATv2019_Tequi_not_NaN.csv&quot;))
+df_sub_1e6  %&gt;% write_csv(here::here(&quot;/data/_summarized_data&quot;, &quot;SOCATv2019_random_1e6.csv&quot;))
+df_sub_1e5  %&gt;% write_csv(here::here(&quot;/data/_summarized_data&quot;, &quot;SOCATv2019_random_1e5.csv&quot;))
+df_sub_1e4  %&gt;% write_csv(here::here(&quot;/data/_summarized_data&quot;, &quot;SOCATv2019_random_1e4.csv&quot;))</code></pre>
+</div>
+<div id="temperature-offset" class="section level1">
+<h1>Temperature offset</h1>
+<pre class="r"><code>df &lt;- read_csv(here::here(&quot;/data/_summarized_data&quot;, &quot;SOCATv2019_random_1e6.csv&quot;))
+
+floor_decade    = function(value){ return(value - value %% 10) }
+
+
+df &lt;- df %&gt;%
+  filter(!is.na(SST)) %&gt;% 
+  mutate(lat_int = cut(lat, seq(-90,90,10), 
+                       labels = seq(-85,85,10)),
+         lon_int = cut(lon, seq(0,360,20), 
+                       labels = seq(10,350,20)),
+         d_Tem = Tequ-SST,
+         d_Tem_int = cut(d_Tem, seq(-10,20,0.25),
+                     labels = round(seq(-9.88,20,0.25),2)),
+         floor_decade = floor_decade(yr))
+
+
+
+df &lt;- df %&gt;% 
+  mutate(fCO2equ = fCO2rec + 0.0423*d_Tem*fCO2rec,
+         fCO2rec_SOCAT = fCO2equ - 0.0423*d_Tem*fCO2equ,
+         d_fCO2_test = fCO2rec_SOCAT - fCO2rec,
+         t_coeff = 3.92*1e-6*Tequ^2 - 4.27*1e-4*Tequ - 4.384*1e-6*fCO2equ + 4.814*1e-2,
+         fCO2rec_Mueller = fCO2equ - t_coeff*d_Tem*fCO2equ,
+         d_fCO2 = fCO2rec_SOCAT - fCO2rec_Mueller) %&gt;% 
+    filter(abs(d_fCO2) &lt; 5)
+
+
+df %&gt;%
+  ggplot(aes(d_fCO2))+
+  geom_histogram()</code></pre>
+<p><img src="figure/SOCAT_revision.Rmd/plot_observation_distribution-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>df_int &lt;- df %&gt;% 
+  group_by(floor_decade, lat_int, d_Tem_int) %&gt;% 
+  summarise(nr=n(),
+            SST_mean = mean(SST),
+            fCO2_mean = mean(fCO2rec),
+            d_fCO2_mean = mean(d_fCO2)) %&gt;% 
+  ungroup()
+
+df_int &lt;- df_int %&gt;%
+  mutate(lat_int = as.numeric(as.character(lat_int)),
+         d_Tem_int = as.numeric(as.character(d_Tem_int)))
+
+
+df_int %&gt;% 
+  filter(d_Tem_int &gt; -5, d_Tem_int &lt; 5) %&gt;% 
+  ggplot(aes(d_Tem_int, lat_int, fill=log10(nr)))+
+  geom_raster()+
+  geom_hline(yintercept = 0)+
+  geom_vline(xintercept = 0)+
+  scale_fill_viridis_c(name = &quot;log10(nr observations)&quot;)+
+  theme_bw()+
+  labs(y=&quot;Latitude (10 deg N intervals)&quot;, x=&quot;Tequi - SST (K)&quot;,
+       title = &quot;Difference between insitu and measurement temperature&quot;,
+       subtitle = &quot;SOCATv6 data displayed for decades and latitude intervals&quot;)+
+  facet_wrap(~floor_decade)+
+  theme(legend.position = &quot;bottom&quot;)</code></pre>
+<p><img src="figure/SOCAT_revision.Rmd/plot_observation_distribution-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>df_int %&gt;%
+  ggplot(aes(d_Tem_int, lat_int, fill=fCO2_mean))+
+  geom_vline(xintercept = 0)+
+  geom_raster()+
+  scale_fill_viridis_c(limits=c(200,500))+
+  labs(y=&quot;Latitude (10 deg N intervals)&quot;, x=&quot;Tequi - SST (K)&quot;,
+       title = &quot;Difference between insitu and measurement temperature&quot;,
+       subtitle = &quot;SOCATv6 data displayed for decades and latitude intervals&quot;)+
+  theme_bw()+
+  facet_wrap(~floor_decade)</code></pre>
+<p><img src="figure/SOCAT_revision.Rmd/plot_observation_distribution-3.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>df_int %&gt;%
+  ggplot(aes(d_Tem_int, lat_int, fill=d_fCO2_mean))+
+  geom_vline(xintercept = 0)+
+  geom_raster()+
+  scale_fill_viridis_c()+
+  labs(y=&quot;Latitude (10 deg N intervals)&quot;, x=&quot;Tequi - SST (K)&quot;,
+       title = &quot;Difference between insitu and measurement temperature&quot;,
+       subtitle = &quot;SOCATv6 data displayed for decades and latitude intervals&quot;)+
+  theme_bw()+
+  facet_wrap(~floor_decade)</code></pre>
+<p><img src="figure/SOCAT_revision.Rmd/plot_observation_distribution-4.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>df_int %&gt;% 
+  ggplot(aes(d_Tem_int, fCO2_mean, col=as.factor(floor_decade)))+
+  geom_vline(xintercept = 0)+
+  geom_point()+
+  scale_color_viridis_d(name=&quot;Decade&quot;, direction = -1)+
+  theme_bw()+
+  facet_wrap(~lat_int)+
+  ylim(200,500)+
+  labs(x=&quot;Tequi - SST (K)&quot;, y=&quot;fCO2 (uatm)&quot;,
+       title = &quot;fCO2 relation to temperature difference&quot;,
+       subtitle = &quot;SOCATv6 data displayed for decades and latitude (10 deg N intervals)&quot;)</code></pre>
+<p><img src="figure/SOCAT_revision.Rmd/plot_observation_distribution-5.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>map_int &lt;- df %&gt;% 
+  mutate(lat_int = cut(lat, seq(-90,90,1), 
+                       labels = seq(-89.5,89.5,1)),
+         lon_int = cut(lon, seq(0,360,1), 
+                       labels = seq(0.5,359.5,1)),
+         lat_int = as.numeric(as.character(lat_int)),
+         lon_int = as.numeric(as.character(lon_int))) %&gt;% 
+  group_by(lon_int, lat_int) %&gt;% 
+  summarise(nr=n(),
+            SST_mean = mean(SST),
+            fCO2_mean = mean(fCO2rec),
+            d_fCO2_mean = mean(d_fCO2))
+
+map_int %&gt;% 
+  ggplot(aes(lon_int, lat_int, fill=SST_mean))+
+  geom_raster()+
+  scale_fill_viridis_c()</code></pre>
+<p><img src="figure/SOCAT_revision.Rmd/plot_observation_distribution-6.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>map_int %&gt;% 
+  ggplot(aes(lon_int, lat_int, fill=fCO2_mean))+
+  geom_raster()+
+  scale_fill_viridis_c(limits=c(200,500))</code></pre>
+<p><img src="figure/SOCAT_revision.Rmd/plot_observation_distribution-7.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>map_int %&gt;% 
+  ggplot(aes(lon_int, lat_int, fill=d_fCO2_mean))+
+  geom_raster()+
+  scale_fill_divergent()</code></pre>
+<p><img src="figure/SOCAT_revision.Rmd/plot_observation_distribution-8.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="open-tasks" class="section level1">
+<h1>Open Tasks</h1>
+<ul>
+<li>Check if rows with equilibrator temperature NaN refer to bouy data</li>
+<li>why are there SST NaN rows?</li>
+</ul>
 <br>
 <p>
 <button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
@@ -583,13 +753,38 @@ locale:
 attached base packages:
 [1] stats     graphics  grDevices utils     datasets  methods   base     
 
+other attached packages:
+ [1] metR_0.5.0      forcats_0.4.0   stringr_1.4.0   dplyr_0.8.3    
+ [5] purrr_0.3.3     readr_1.3.1     tidyr_1.0.0     tibble_2.1.3   
+ [9] ggplot2_3.2.1   tidyverse_1.3.0
+
 loaded via a namespace (and not attached):
- [1] workflowr_1.6.0 Rcpp_1.0.2      rprojroot_1.3-2 digest_0.6.22  
- [5] later_1.0.0     R6_2.4.0        backports_1.1.5 git2r_0.26.1   
- [9] magrittr_1.5    evaluate_0.14   stringi_1.4.3   rlang_0.4.1    
-[13] fs_1.3.1        promises_1.1.0  rmarkdown_2.0   tools_3.5.0    
-[17] stringr_1.4.0   glue_1.3.1      httpuv_1.5.2    xfun_0.10      
-[21] yaml_2.2.0      compiler_3.5.0  htmltools_0.4.0 knitr_1.26     </code></pre>
+ [1] httr_1.4.1           maps_3.3.0           viridisLite_0.3.0   
+ [4] jsonlite_1.6         here_0.1             dotCall64_1.0-0     
+ [7] modelr_0.1.5         Formula_1.2-3        assertthat_0.2.1    
+[10] sp_1.3-1             cellranger_1.1.0     yaml_2.2.0          
+[13] pillar_1.4.2         backports_1.1.5      lattice_0.20-35     
+[16] glue_1.3.1           digest_0.6.22        promises_1.1.0      
+[19] checkmate_1.9.4      rvest_0.3.5          colorspace_1.4-1    
+[22] htmltools_0.4.0      httpuv_1.5.2         Matrix_1.2-14       
+[25] plyr_1.8.4           pkgconfig_2.0.3      broom_0.5.3         
+[28] haven_2.2.0          scales_1.0.0         later_1.0.0         
+[31] git2r_0.26.1         generics_0.0.2       withr_2.1.2         
+[34] lazyeval_0.2.2       formula.tools_1.7.1  cli_1.1.0           
+[37] magrittr_1.5         crayon_1.3.4         readxl_1.3.1        
+[40] memoise_1.1.0        maptools_0.9-8       evaluate_0.14       
+[43] fs_1.3.1             operator.tools_1.6.3 nlme_3.1-137        
+[46] xml2_1.2.2           foreign_0.8-70       tools_3.5.0         
+[49] data.table_1.12.6    hms_0.5.2            lifecycle_0.1.0     
+[52] munsell_0.5.0        reprex_0.3.0         compiler_3.5.0      
+[55] rlang_0.4.1          grid_3.5.0           RCurl_1.95-4.12     
+[58] rstudioapi_0.10      spam_2.3-0.2         labeling_0.3        
+[61] bitops_1.0-6         rmarkdown_2.0        gtable_0.3.0        
+[64] DBI_1.0.0            R6_2.4.0             gridExtra_2.3       
+[67] lubridate_1.7.4      knitr_1.26           zeallot_0.1.0       
+[70] workflowr_1.6.0      rprojroot_1.3-2      stringi_1.4.3       
+[73] Rcpp_1.0.2           fields_9.9           vctrs_0.2.0         
+[76] dbplyr_1.4.2         tidyselect_0.2.5     xfun_0.10           </code></pre>
 </div>
 </div>
 
