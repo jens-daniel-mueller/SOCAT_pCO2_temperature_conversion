@@ -7,9 +7,196 @@ editor_options:
   chunk_output_type: console
 ---
 
-## Introduction
+```{r global_options, include = FALSE}
+knitr::opts_chunk$set(warning=FALSE, message=FALSE)
+```
 
-```{r}
+```{r packages}
+
+library(tidyverse)
+library(metR)
 
 ```
 
+
+# SOCAT data base
+
+This study is based on SOCATv2019, thus excluding flag E data.
+Limitation to observations with given equilibrator temperature probably restricts observations to those made on VOS (excluding bouys).
+
+```{r read_SOCAT_data, eval=FALSE}
+
+# identify the number of rows to skip by playing around with the import data set functionality in RStudio
+
+df <- read_tsv(here::here("/data", "SOCATv2019.tsv"), skip = 5859)
+
+df <- df %>% 
+  select(4:12, 14:16, 19, 21:26)
+
+df <- df %>% 
+  rename(lon = `longitude [dec.deg.E]`, 
+         lat = `latitude [dec.deg.N]`,
+         SST = `SST [deg.C]`, 
+         Tequ = `Tequ [deg.C]`, 
+         dep = `ETOPO2_depth [m]`,
+         dist_land = `dist_to_land [km]`,
+         GVCO2 = `GVCO2 [umol/mol]`,
+         fCO2rec = `fCO2rec [uatm]`)
+
+df <- df %>% 
+  filter(!is.na(Tequ), !is.na(SST))
+
+df_sub_1e6 <- df %>% 
+  sample_n(size = 1e6, replace = FALSE)
+
+df_sub_1e5 <- df %>% 
+  sample_n(size = 1e5, replace = FALSE)
+
+df_sub_1e4 <- df %>% 
+  sample_n(size = 1e4, replace = FALSE)
+
+df  %>% write_csv(here::here("/data/_summarized_data", "SOCATv2019_Tequi_not_NaN.csv"))
+df_sub_1e6  %>% write_csv(here::here("/data/_summarized_data", "SOCATv2019_random_1e6.csv"))
+df_sub_1e5  %>% write_csv(here::here("/data/_summarized_data", "SOCATv2019_random_1e5.csv"))
+df_sub_1e4  %>% write_csv(here::here("/data/_summarized_data", "SOCATv2019_random_1e4.csv"))
+
+
+```
+
+# Temperature offset
+
+
+```{r plot_observation_distribution}
+
+df <- read_csv(here::here("/data/_summarized_data", "SOCATv2019_random_1e6.csv"))
+
+floor_decade    = function(value){ return(value - value %% 10) }
+
+
+df <- df %>%
+  filter(!is.na(SST)) %>% 
+  mutate(lat_int = cut(lat, seq(-90,90,10), 
+                       labels = seq(-85,85,10)),
+         lon_int = cut(lon, seq(0,360,20), 
+                       labels = seq(10,350,20)),
+         d_Tem = Tequ-SST,
+         d_Tem_int = cut(d_Tem, seq(-10,20,0.25),
+                     labels = round(seq(-9.88,20,0.25),2)),
+         floor_decade = floor_decade(yr))
+
+
+
+df <- df %>% 
+  mutate(fCO2equ = fCO2rec + 0.0423*d_Tem*fCO2rec,
+         fCO2rec_SOCAT = fCO2equ - 0.0423*d_Tem*fCO2equ,
+         d_fCO2_test = fCO2rec_SOCAT - fCO2rec,
+         t_coeff = 3.92*1e-6*Tequ^2 - 4.27*1e-4*Tequ - 4.384*1e-6*fCO2equ + 4.814*1e-2,
+         fCO2rec_Mueller = fCO2equ - t_coeff*d_Tem*fCO2equ,
+         d_fCO2 = fCO2rec_SOCAT - fCO2rec_Mueller) %>% 
+    filter(abs(d_fCO2) < 5)
+
+
+df %>%
+  ggplot(aes(d_fCO2))+
+  geom_histogram()
+
+
+df_int <- df %>% 
+  group_by(floor_decade, lat_int, d_Tem_int) %>% 
+  summarise(nr=n(),
+            SST_mean = mean(SST),
+            fCO2_mean = mean(fCO2rec),
+            d_fCO2_mean = mean(d_fCO2)) %>% 
+  ungroup()
+
+df_int <- df_int %>%
+  mutate(lat_int = as.numeric(as.character(lat_int)),
+         d_Tem_int = as.numeric(as.character(d_Tem_int)))
+
+
+df_int %>% 
+  filter(d_Tem_int > -5, d_Tem_int < 5) %>% 
+  ggplot(aes(d_Tem_int, lat_int, fill=log10(nr)))+
+  geom_raster()+
+  geom_hline(yintercept = 0)+
+  geom_vline(xintercept = 0)+
+  scale_fill_viridis_c(name = "log10(nr observations)")+
+  theme_bw()+
+  labs(y="Latitude (10 deg N intervals)", x="Tequi - SST (K)",
+       title = "Difference between insitu and measurement temperature",
+       subtitle = "SOCATv6 data displayed for decades and latitude intervals")+
+  facet_wrap(~floor_decade)+
+  theme(legend.position = "bottom")
+
+
+df_int %>%
+  ggplot(aes(d_Tem_int, lat_int, fill=fCO2_mean))+
+  geom_vline(xintercept = 0)+
+  geom_raster()+
+  scale_fill_viridis_c(limits=c(200,500))+
+  labs(y="Latitude (10 deg N intervals)", x="Tequi - SST (K)",
+       title = "Difference between insitu and measurement temperature",
+       subtitle = "SOCATv6 data displayed for decades and latitude intervals")+
+  theme_bw()+
+  facet_wrap(~floor_decade)
+
+df_int %>%
+  ggplot(aes(d_Tem_int, lat_int, fill=d_fCO2_mean))+
+  geom_vline(xintercept = 0)+
+  geom_raster()+
+  scale_fill_viridis_c()+
+  labs(y="Latitude (10 deg N intervals)", x="Tequi - SST (K)",
+       title = "Difference between insitu and measurement temperature",
+       subtitle = "SOCATv6 data displayed for decades and latitude intervals")+
+  theme_bw()+
+  facet_wrap(~floor_decade)
+
+df_int %>% 
+  ggplot(aes(d_Tem_int, fCO2_mean, col=as.factor(floor_decade)))+
+  geom_vline(xintercept = 0)+
+  geom_point()+
+  scale_color_viridis_d(name="Decade", direction = -1)+
+  theme_bw()+
+  facet_wrap(~lat_int)+
+  ylim(200,500)+
+  labs(x="Tequi - SST (K)", y="fCO2 (uatm)",
+       title = "fCO2 relation to temperature difference",
+       subtitle = "SOCATv6 data displayed for decades and latitude (10 deg N intervals)")
+
+
+
+map_int <- df %>% 
+  mutate(lat_int = cut(lat, seq(-90,90,1), 
+                       labels = seq(-89.5,89.5,1)),
+         lon_int = cut(lon, seq(0,360,1), 
+                       labels = seq(0.5,359.5,1)),
+         lat_int = as.numeric(as.character(lat_int)),
+         lon_int = as.numeric(as.character(lon_int))) %>% 
+  group_by(lon_int, lat_int) %>% 
+  summarise(nr=n(),
+            SST_mean = mean(SST),
+            fCO2_mean = mean(fCO2rec),
+            d_fCO2_mean = mean(d_fCO2))
+
+map_int %>% 
+  ggplot(aes(lon_int, lat_int, fill=SST_mean))+
+  geom_raster()+
+  scale_fill_viridis_c()
+
+map_int %>% 
+  ggplot(aes(lon_int, lat_int, fill=fCO2_mean))+
+  geom_raster()+
+  scale_fill_viridis_c(limits=c(200,500))
+
+map_int %>% 
+  ggplot(aes(lon_int, lat_int, fill=d_fCO2_mean))+
+  geom_raster()+
+  scale_fill_divergent()
+
+```
+
+
+# Open Tasks
+
+- Check if rows with equilibrator temperature NaN refer to bouy data
+- why are there SST NaN rows?
