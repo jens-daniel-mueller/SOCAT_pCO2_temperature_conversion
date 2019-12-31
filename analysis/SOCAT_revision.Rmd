@@ -16,6 +16,8 @@ knitr::opts_chunk$set(warning=FALSE, message=FALSE)
 library(tidyverse)
 library(metR)
 
+theme_set(theme_bw())
+
 ```
 
 
@@ -121,7 +123,6 @@ df_int %>%
   geom_hline(yintercept = 0)+
   geom_vline(xintercept = 0)+
   scale_fill_viridis_c(name = "log10(nr observations)")+
-  theme_bw()+
   labs(y="Latitude (10 deg N intervals)", x="Tequi - SST (K)",
        title = "Difference between insitu and measurement temperature",
        subtitle = "SOCATv6 data displayed for decades and latitude intervals")+
@@ -137,7 +138,6 @@ df_int %>%
   labs(y="Latitude (10 deg N intervals)", x="Tequi - SST (K)",
        title = "Difference between insitu and measurement temperature",
        subtitle = "SOCATv6 data displayed for decades and latitude intervals")+
-  theme_bw()+
   facet_wrap(~floor_decade)
 
 df_int %>%
@@ -148,7 +148,6 @@ df_int %>%
   labs(y="Latitude (10 deg N intervals)", x="Tequi - SST (K)",
        title = "Difference between insitu and measurement temperature",
        subtitle = "SOCATv6 data displayed for decades and latitude intervals")+
-  theme_bw()+
   facet_wrap(~floor_decade)
 
 df_int %>% 
@@ -156,7 +155,6 @@ df_int %>%
   geom_vline(xintercept = 0)+
   geom_point()+
   scale_color_viridis_d(name="Decade", direction = -1)+
-  theme_bw()+
   facet_wrap(~lat_int)+
   ylim(200,500)+
   labs(x="Tequi - SST (K)", y="fCO2 (uatm)",
@@ -191,7 +189,7 @@ map_int %>%
 map_int %>% 
   ggplot(aes(lon_int, lat_int, fill=d_fCO2_mean))+
   geom_raster()+
-  scale_fill_divergent()
+  scale_fill_divergent(mid="darkgrey")
 
 ```
 
