@@ -52,6 +52,9 @@ df <- df %>%
          !is.na(SST),
          !is.na(fCO2rec))
   
+  df_sub_5e6 <- df %>% 
+    sample_n(size = 1e6, replace = FALSE)
+  
   df_sub_1e6 <- df %>% 
     sample_n(size = 1e6, replace = FALSE)
   
@@ -62,6 +65,7 @@ df <- df %>%
     sample_n(size = 1e4, replace = FALSE)
   
   df  %>% write_csv(here::here("/data/_summarized_data", "SOCATv2019_Tequi_not_NaN.csv"))
+  df_sub_5e6  %>% write_csv(here::here("/data/_summarized_data", "SOCATv2019_random_5e6.csv"))
   df_sub_1e6  %>% write_csv(here::here("/data/_summarized_data", "SOCATv2019_random_1e6.csv"))
   df_sub_1e5  %>% write_csv(here::here("/data/_summarized_data", "SOCATv2019_random_1e5.csv"))
   df_sub_1e4  %>% write_csv(here::here("/data/_summarized_data", "SOCATv2019_random_1e4.csv"))
@@ -74,13 +78,14 @@ The following analysis is based on the subsetted SOCAT data base and 100 µatm <
 ```{r read_modified_SOCAT_data}
 
 
-df <- read_csv(here::here("/data/_summarized_data", "SOCATv2019_random_1e6.csv"))
+#df <- read_csv(here::here("/data/_summarized_data", "SOCATv2019_Tequi_not_NaN.csv"))
+df <- read_csv(here::here("/data/_summarized_data", "SOCATv2019_random_5e6.csv"))
 
 #floor_decade    = function(value){ return(value - value %% 10) }
 
 
 df %>%
-  filter(fCO2rec < 800) %>% 
+  filter(fCO2rec < 800) %>%
   ggplot(aes(fCO2rec))+
   geom_vline(xintercept = c(100, 700), col="red")+
   geom_histogram()
