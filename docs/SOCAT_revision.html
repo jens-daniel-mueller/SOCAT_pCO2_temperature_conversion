@@ -527,10 +527,10 @@ This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomjensdanielmuellerSOCATpCO2temperatureconversiontree5d1954cffe4bd17258a85109df69ded8a6a0be76targetblank5d1954ca"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/jens-daniel-mueller/SOCAT_pCO2_temperature_conversion/tree/5d1954cffe4bd17258a85109df69ded8a6a0be76" target="_blank">5d1954c</a> </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomjensdanielmuellerSOCATpCO2temperatureconversiontreefdd16fb1584bae35bce8892d64e19855beeacef5targetblankfdd16fba"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/jens-daniel-mueller/SOCAT_pCO2_temperature_conversion/tree/fdd16fb1584bae35bce8892d64e19855beeacef5" target="_blank">fdd16fb</a> </a>
 </p>
 </div>
-<div id="strongRepositoryversionstrongahrefhttpsgithubcomjensdanielmuellerSOCATpCO2temperatureconversiontree5d1954cffe4bd17258a85109df69ded8a6a0be76targetblank5d1954ca" class="panel-collapse collapse">
+<div id="strongRepositoryversionstrongahrefhttpsgithubcomjensdanielmuellerSOCATpCO2temperatureconversiontreefdd16fb1584bae35bce8892d64e19855beeacef5targetblankfdd16fba" class="panel-collapse collapse">
 <div class="panel-body">
 <p>
 Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility. The version displayed above was the version of the Git repository at the time these results were generated. <br><br> Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
@@ -591,6 +591,9 @@ df &lt;- df %&gt;%
          !is.na(SST),
          !is.na(fCO2rec))
   
+  df_sub_5e6 &lt;- df %&gt;% 
+    sample_n(size = 1e6, replace = FALSE)
+  
   df_sub_1e6 &lt;- df %&gt;% 
     sample_n(size = 1e6, replace = FALSE)
   
@@ -601,17 +604,19 @@ df &lt;- df %&gt;%
     sample_n(size = 1e4, replace = FALSE)
   
   df  %&gt;% write_csv(here::here(&quot;/data/_summarized_data&quot;, &quot;SOCATv2019_Tequi_not_NaN.csv&quot;))
+  df_sub_5e6  %&gt;% write_csv(here::here(&quot;/data/_summarized_data&quot;, &quot;SOCATv2019_random_5e6.csv&quot;))
   df_sub_1e6  %&gt;% write_csv(here::here(&quot;/data/_summarized_data&quot;, &quot;SOCATv2019_random_1e6.csv&quot;))
   df_sub_1e5  %&gt;% write_csv(here::here(&quot;/data/_summarized_data&quot;, &quot;SOCATv2019_random_1e5.csv&quot;))
   df_sub_1e4  %&gt;% write_csv(here::here(&quot;/data/_summarized_data&quot;, &quot;SOCATv2019_random_1e4.csv&quot;))</code></pre>
 <p>The following analysis is based on the subsetted SOCAT data base and 100 µatm &lt; fCO2 &lt; 700 µatm.</p>
-<pre class="r"><code>df &lt;- read_csv(here::here(&quot;/data/_summarized_data&quot;, &quot;SOCATv2019_random_1e6.csv&quot;))
+<pre class="r"><code>#df &lt;- read_csv(here::here(&quot;/data/_summarized_data&quot;, &quot;SOCATv2019_Tequi_not_NaN.csv&quot;))
+df &lt;- read_csv(here::here(&quot;/data/_summarized_data&quot;, &quot;SOCATv2019_random_5e6.csv&quot;))
 
 #floor_decade    = function(value){ return(value - value %% 10) }
 
 
 df %&gt;%
-  filter(fCO2rec &lt; 800) %&gt;% 
+  filter(fCO2rec &lt; 800) %&gt;%
   ggplot(aes(fCO2rec))+
   geom_vline(xintercept = c(100, 700), col=&quot;red&quot;)+
   geom_histogram()</code></pre>
