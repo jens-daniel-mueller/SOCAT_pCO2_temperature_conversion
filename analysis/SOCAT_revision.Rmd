@@ -16,17 +16,19 @@ knitr::opts_chunk$set(warning=FALSE, message=FALSE)
 library(tidyverse)
 library(metR)
 
-theme_set(theme_bw())
+#theme_set(theme())
 
 ```
 
 
 # SOCAT data base
 
-This study is based on SOCATv2019, thus excluding flag E data.
+## Read and subset data
+
+This study is based on SOCATv2019.tsv, thus excluding flag E data stored in a seperate file.
 Limitation to observations with given equilibrator temperature probably restricts observations to those made on VOS (excluding bouys).
 
-```{r read_SOCAT_data, eval=FALSE}
+```{r read_subset_SOCAT_data, eval=FALSE}
 
 # identify the number of rows to skip by playing around with the import data set functionality in RStudio
 
@@ -46,152 +48,307 @@ df <- df %>%
          fCO2rec = `fCO2rec [uatm]`)
 
 df <- df %>% 
-  filter(!is.na(Tequ), !is.na(SST))
-
-df_sub_1e6 <- df %>% 
-  sample_n(size = 1e6, replace = FALSE)
-
-df_sub_1e5 <- df %>% 
-  sample_n(size = 1e5, replace = FALSE)
-
-df_sub_1e4 <- df %>% 
-  sample_n(size = 1e4, replace = FALSE)
-
-df  %>% write_csv(here::here("/data/_summarized_data", "SOCATv2019_Tequi_not_NaN.csv"))
-df_sub_1e6  %>% write_csv(here::here("/data/_summarized_data", "SOCATv2019_random_1e6.csv"))
-df_sub_1e5  %>% write_csv(here::here("/data/_summarized_data", "SOCATv2019_random_1e5.csv"))
-df_sub_1e4  %>% write_csv(here::here("/data/_summarized_data", "SOCATv2019_random_1e4.csv"))
+  filter(!is.na(Tequ),
+         !is.na(SST),
+         !is.na(fCO2rec))
+  
+  df_sub_1e6 <- df %>% 
+    sample_n(size = 1e6, replace = FALSE)
+  
+  df_sub_1e5 <- df %>% 
+    sample_n(size = 1e5, replace = FALSE)
+  
+  df_sub_1e4 <- df %>% 
+    sample_n(size = 1e4, replace = FALSE)
+  
+  df  %>% write_csv(here::here("/data/_summarized_data", "SOCATv2019_Tequi_not_NaN.csv"))
+  df_sub_1e6  %>% write_csv(here::here("/data/_summarized_data", "SOCATv2019_random_1e6.csv"))
+  df_sub_1e5  %>% write_csv(here::here("/data/_summarized_data", "SOCATv2019_random_1e5.csv"))
+  df_sub_1e4  %>% write_csv(here::here("/data/_summarized_data", "SOCATv2019_random_1e4.csv"))
 
 
 ```
 
-# Temperature offset
+The following analysis is based on the subsetted SOCAT data base and 100 µatm < fCO2 < 700 µatm. 
 
+```{r read_modified_SOCAT_data}
 
-```{r plot_observation_distribution}
 
 df <- read_csv(here::here("/data/_summarized_data", "SOCATv2019_random_1e6.csv"))
 
-floor_decade    = function(value){ return(value - value %% 10) }
+#floor_decade    = function(value){ return(value - value %% 10) }
 
+
+df %>%
+  filter(fCO2rec < 800) %>% 
+  ggplot(aes(fCO2rec))+
+  geom_vline(xintercept = c(100, 700), col="red")+
+  geom_histogram()
 
 df <- df %>%
-  filter(!is.na(SST)) %>% 
-  mutate(lat_int = cut(lat, seq(-90,90,10), 
-                       labels = seq(-85,85,10)),
-         lon_int = cut(lon, seq(0,360,20), 
-                       labels = seq(10,350,20)),
-         d_Tem = Tequ-SST,
-         d_Tem_int = cut(d_Tem, seq(-10,20,0.25),
-                     labels = round(seq(-9.88,20,0.25),2)),
-         floor_decade = floor_decade(yr))
+  mutate(d_Tem = SST-Tequ,
+         lon = if_else(lon > 190, lon-360, lon)) %>% 
+  filter(fCO2rec < 700, fCO2rec > 100)
 
 
 
 df <- df %>% 
-  mutate(fCO2equ = fCO2rec + 0.0423*d_Tem*fCO2rec,
-         fCO2rec_SOCAT = fCO2equ - 0.0423*d_Tem*fCO2equ,
-         d_fCO2_test = fCO2rec_SOCAT - fCO2rec,
-         t_coeff = 3.92*1e-6*Tequ^2 - 4.27*1e-4*Tequ - 4.384*1e-6*fCO2equ + 4.814*1e-2,
-         fCO2rec_Mueller = fCO2equ - t_coeff*d_Tem*fCO2equ,
-         d_fCO2 = fCO2rec_SOCAT - fCO2rec_Mueller) %>% 
-    filter(abs(d_fCO2) < 5)
+  select(3, 8, 9, 11, 12, 17, 20)
 
 
-df %>%
-  ggplot(aes(d_fCO2))+
-  geom_histogram()
+```
+
+## Global maps
 
 
-df_int <- df %>% 
-  group_by(floor_decade, lat_int, d_Tem_int) %>% 
-  summarise(nr=n(),
-            SST_mean = mean(SST),
-            fCO2_mean = mean(fCO2rec),
-            d_fCO2_mean = mean(d_fCO2)) %>% 
-  ungroup()
+```{r plot_SOCAT_maps_all}
 
-df_int <- df_int %>%
-  mutate(lat_int = as.numeric(as.character(lat_int)),
-         d_Tem_int = as.numeric(as.character(d_Tem_int)))
+maps_SOCAT <- df %>% 
+  mutate(lat_int = cut(lat,
+                       breaks = seq(-90,90,1),
+                       labels = seq(-89.5,89.5,1)),
+         lat_int = as.numeric(as.character(lat_int)),
+         lon_int = cut(lon,
+                       breaks = seq(-170,190,1),
+                       labels = seq(-169.5,189.5,1)),
+         lon_int = as.numeric(as.character(lon_int))) %>% 
+  select(-c(lat, lon))
+
+maps_SOCAT_all <- maps_SOCAT%>% 
+  select(-mon) %>% 
+  group_by(lat_int, lon_int) %>% 
+  summarise_all("mean")
 
 
-df_int %>% 
-  filter(d_Tem_int > -5, d_Tem_int < 5) %>% 
-  ggplot(aes(d_Tem_int, lat_int, fill=log10(nr)))+
-  geom_raster()+
-  geom_hline(yintercept = 0)+
-  geom_vline(xintercept = 0)+
-  scale_fill_viridis_c(name = "log10(nr observations)")+
-  labs(y="Latitude (10 deg N intervals)", x="Tequi - SST (K)",
-       title = "Difference between insitu and measurement temperature",
-       subtitle = "SOCATv6 data displayed for decades and latitude intervals")+
-  facet_wrap(~floor_decade)+
+mapWorld <- borders("world", colour="gray60", fill="gray60") # create a layer of borders
+
+maps_SOCAT_all %>% 
+  ggplot(aes(lon_int, lat_int, fill=SST))+
+  mapWorld+
+  geom_tile()+
+  scale_fill_viridis_c(name = "SST (°C)", option = "inferno")+
+  labs(x="Lon (°E)", y="Lat (°N)")+
+  scale_x_continuous(breaks = seq(-180, 180, 30), limits = c(-170, 190.5))+
+  scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
+  coord_quickmap(expand = FALSE)+
+  theme(legend.position = "bottom")
+
+# maps_SOCAT_all %>% 
+#   filter(fCO2rec<500) %>% 
+#   ggplot(aes(fCO2rec))+
+#   geom_histogram()
+
+maps_SOCAT_all %>% 
+  ggplot(aes(lon_int, lat_int, fill=fCO2rec))+
+  mapWorld+
+  geom_tile()+
+  scale_fill_viridis_c(name = expression(fCO[2]~(µatm)), limits = c(200, 500))+
+  labs(x="Lon (°E)", y="Lat (°N)")+
+  scale_x_continuous(breaks = seq(-180, 180, 30), limits = c(-170, 190.5))+
+  scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
+  coord_quickmap(expand = FALSE)+
+  theme(legend.position = "bottom")
+
+maps_SOCAT_all %>% 
+  ggplot(aes(lon_int, lat_int, fill=d_Tem))+
+  mapWorld+
+  geom_tile()+
+  scale_fill_divergent(name = expression(Delta~T[SST-equi]~(K)))+
+  labs(x="Lon (°E)", y="Lat (°N)")+
+  scale_x_continuous(breaks = seq(-180, 180, 30), limits = c(-170, 190.5))+
+  scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
+  coord_quickmap(expand = FALSE)+
   theme(legend.position = "bottom")
 
 
-df_int %>%
-  ggplot(aes(d_Tem_int, lat_int, fill=fCO2_mean))+
-  geom_vline(xintercept = 0)+
-  geom_raster()+
-  scale_fill_viridis_c(limits=c(200,500))+
-  labs(y="Latitude (10 deg N intervals)", x="Tequi - SST (K)",
-       title = "Difference between insitu and measurement temperature",
-       subtitle = "SOCATv6 data displayed for decades and latitude intervals")+
-  facet_wrap(~floor_decade)
-
-df_int %>%
-  ggplot(aes(d_Tem_int, lat_int, fill=d_fCO2_mean))+
-  geom_vline(xintercept = 0)+
-  geom_raster()+
-  scale_fill_viridis_c()+
-  labs(y="Latitude (10 deg N intervals)", x="Tequi - SST (K)",
-       title = "Difference between insitu and measurement temperature",
-       subtitle = "SOCATv6 data displayed for decades and latitude intervals")+
-  facet_wrap(~floor_decade)
-
-df_int %>% 
-  ggplot(aes(d_Tem_int, fCO2_mean, col=as.factor(floor_decade)))+
-  geom_vline(xintercept = 0)+
-  geom_point()+
-  scale_color_viridis_d(name="Decade", direction = -1)+
-  facet_wrap(~lat_int)+
-  ylim(200,500)+
-  labs(x="Tequi - SST (K)", y="fCO2 (uatm)",
-       title = "fCO2 relation to temperature difference",
-       subtitle = "SOCATv6 data displayed for decades and latitude (10 deg N intervals)")
-
-
-
-map_int <- df %>% 
-  mutate(lat_int = cut(lat, seq(-90,90,1), 
-                       labels = seq(-89.5,89.5,1)),
-         lon_int = cut(lon, seq(0,360,1), 
-                       labels = seq(0.5,359.5,1)),
-         lat_int = as.numeric(as.character(lat_int)),
-         lon_int = as.numeric(as.character(lon_int))) %>% 
-  group_by(lon_int, lat_int) %>% 
-  summarise(nr=n(),
-            SST_mean = mean(SST),
-            fCO2_mean = mean(fCO2rec),
-            d_fCO2_mean = mean(d_fCO2))
-
-map_int %>% 
-  ggplot(aes(lon_int, lat_int, fill=SST_mean))+
-  geom_raster()+
-  scale_fill_viridis_c()
-
-map_int %>% 
-  ggplot(aes(lon_int, lat_int, fill=fCO2_mean))+
-  geom_raster()+
-  scale_fill_viridis_c(limits=c(200,500))
-
-map_int %>% 
-  ggplot(aes(lon_int, lat_int, fill=d_fCO2_mean))+
-  geom_raster()+
-  scale_fill_divergent(mid="darkgrey")
+rm(maps_SOCAT, maps_SOCAT_all, mapWorld)
 
 ```
+
+
+```{r plot_SOCAT_maps_monthly, eval=FALSE}
+
+maps_SOCAT_monthly <- maps_SOCAT %>% 
+  group_by(lat_int, lon_int, mon) %>% 
+  summarise_all("mean")
+
+maps_SOCAT_monthly %>% 
+  ggplot(aes(lon_int, lat_int, fill=d_Tem))+
+  mapWorld+
+  geom_tile()+
+  scale_fill_viridis_c(name = "SST (°C)")+
+  labs(x="Lon (°E)", y="Lat (°N)")+
+  scale_x_continuous(breaks = seq(-180, 180, 30), limits = c(-170, 190.5))+
+  scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
+  coord_quickmap(expand = FALSE)+
+  facet_wrap(~mon, ncol = 3, labeller = label_both)
+
+
+```
+
+## Latitudinal patterns
+
+```{r plot_SOCAT_lat_patterns}
+
+lat_pattern <- df %>% 
+  mutate(lat = cut(lat,
+                       breaks = seq(-90,90,5),
+                       labels = seq(-87.5,87.5,5)),
+         lat = as.numeric(as.character(lat)),
+         SST = cut(SST,
+                       breaks = seq(-4,40,2),
+                       labels = seq(-3,39,2)),
+         SST = as.numeric(as.character(SST)),
+         fCO2rec = cut(fCO2rec,
+                       breaks = seq(200,500,20),
+                       labels = seq(210,490,20)),
+         fCO2rec = as.numeric(as.character(fCO2rec)),
+         d_Tem = cut(d_Tem,
+                       breaks = seq(-5,5,0.2),
+                       labels = seq(-4.9,4.9,0.2)),
+         d_Tem = as.numeric(as.character(d_Tem))) %>% 
+  drop_na() %>% 
+  select(-c(mon, lon, Tequ))
+
+
+SST_lat_pattern <- lat_pattern %>% 
+  group_by(lat, SST) %>% 
+  summarise(nr=n()) %>% 
+  ungroup()
+
+SST_lat_pattern %>% 
+  ggplot()+
+  geom_raster(aes(SST, lat, fill=log10(nr)))+
+  geom_hline(yintercept = 0)+
+  scale_fill_viridis_c(name = "lg (nr obs)")+
+  scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
+  labs(y="Lat (°N)", x="SST (K)")
+
+
+fCO2rec_lat_pattern <- lat_pattern %>% 
+  group_by(lat, fCO2rec) %>% 
+  summarise(nr=n()) %>% 
+  ungroup()
+
+fCO2rec_lat_pattern %>% 
+  ggplot()+
+  geom_raster(aes(fCO2rec, lat, fill=log10(nr)))+
+  geom_hline(yintercept = 0)+
+  scale_fill_viridis_c(name = "lg (nr obs)")+
+  scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
+  labs(y="Lat (°N)", x=expression(fCO[2]~(µatm)))
+
+
+d_Tem_lat_pattern <- lat_pattern %>% 
+  group_by(lat, d_Tem) %>% 
+  summarise(nr=n()) %>% 
+  ungroup()
+
+d_Tem_lat_pattern %>% 
+  ggplot()+
+  geom_raster(aes(d_Tem, lat, fill=log10(nr)))+
+  geom_hline(yintercept = 0)+
+  geom_vline(xintercept = 0)+
+  scale_fill_viridis_c(name = "lg (nr obs)")+
+  scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
+  labs(y="Lat (°N)", x=expression(Delta~T[SST-equi]~(K)))
+
+
+rm(lat_pattern, d_Tem_lat_pattern, fCO2rec_lat_pattern, SST_lat_pattern)
+
+```
+
+```{r fCO2_vs_d_Tem, eval=FALSE}
+
+d_Tem_pCO2_mean <- df %>% 
+   mutate(d_Tem = cut(d_Tem,
+                       breaks = seq(-5,5,0.2),
+                       labels = seq(-4.9,4.9,0.2)),
+          d_Tem = as.numeric(as.character(d_Tem))) %>% 
+  group_by(d_Tem) %>% 
+  summarise(fCO2rec = mean(fCO2rec, na.rm = TRUE)) %>% 
+  ungroup()
+
+df %>% 
+  ggplot()+
+  geom_point(aes(d_Tem, fCO2rec))+
+  geom_vline(xintercept = 0)+
+  ylim(200,500)
+
+```
+
+
+
+
+# Temperature offset
+
+fCO~2~ in the equilibrator is backcalculated from fCO2rec based on the Takahashi temperature dependence of pCO~2~.
+fCO2rec is than calculated with a temperature and pCO~2~ dependent conversion factor.
+
+```{r recalc_fCO2}
+
+df <- df %>%
+  mutate(fCO2equ = fCO2rec / exp(0.0423*d_Tem),
+         t_coeff = 3.92*1e-6*Tequ^2 - 4.27*1e-4*Tequ - 4.384*1e-6*fCO2equ + 4.814*1e-2,
+         fCO2rec_Mueller = fCO2equ * exp(t_coeff*d_Tem),
+         d_fCO2 = fCO2rec - fCO2rec_Mueller)
+
+
+```
+
+
+```{r maps_of_SOCAT_recalc}
+
+maps_SOCAT_recalc <- df %>% 
+  mutate(lat_int = cut(lat,
+                       breaks = seq(-90,90,1),
+                       labels = seq(-89.5,89.5,1)),
+         lat_int = as.numeric(as.character(lat_int)),
+         lon_int = cut(lon,
+                       breaks = seq(-170,190,1),
+                       labels = seq(-169.5,189.5,1)),
+         lon_int = as.numeric(as.character(lon_int))) %>% 
+  select(lat_int, lon_int, t_coeff, d_fCO2)
+
+maps_SOCAT_all <- maps_SOCAT_recalc %>% 
+  group_by(lat_int, lon_int) %>% 
+  summarise_all("mean")
+
+
+mapWorld <- borders("world", colour="gray60", fill="gray60") # create a layer of borders
+
+
+maps_SOCAT_all %>% 
+  ggplot(aes(lon_int, lat_int, fill=t_coeff))+
+  mapWorld+
+  geom_tile()+
+  scale_fill_divergent(name = expression(dln(pCO[2])/dT), midpoint = 0.0423)+
+  labs(x="Lon (°E)", y="Lat (°N)")+
+  scale_x_continuous(breaks = seq(-180, 180, 30), limits = c(-170, 190.5))+
+  scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
+  coord_quickmap(expand = FALSE)+
+  theme(legend.position = "bottom")
+
+# df %>% 
+#   filter(d_fCO2 > -5, d_fCO2 <5) %>% 
+#   ggplot(aes(d_fCO2))+
+#   geom_histogram()
+
+
+maps_SOCAT_all %>% 
+  filter(d_fCO2 > -2.5, d_fCO2 <2.5) %>% 
+  ggplot(aes(lon_int, lat_int, fill=d_fCO2))+
+  mapWorld+
+  geom_tile()+
+  scale_fill_divergent(name = expression(Delta~pCO["2,SOCAT-Mueller"]~(µatm)))+
+  labs(x="Lon (°E)", y="Lat (°N)")+
+  scale_x_continuous(breaks = seq(-180, 180, 30), limits = c(-170, 190.5))+
+  scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
+  coord_quickmap(expand = FALSE)+
+  theme(legend.position = "bottom")
+
+```
+
 
 
 # Open Tasks
