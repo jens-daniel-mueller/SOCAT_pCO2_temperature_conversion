@@ -527,10 +527,10 @@ This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomjensdanielmuellerSOCATpCO2temperatureconversiontreee79060c6e04e8ec270f784d0993a60925b36ca24targetblanke79060ca"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/jens-daniel-mueller/SOCAT_pCO2_temperature_conversion/tree/e79060c6e04e8ec270f784d0993a60925b36ca24" target="_blank">e79060c</a> </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomjensdanielmuellerSOCATpCO2temperatureconversiontree16a91f5a98a24c12593ca2f985493ab01dce122ftargetblank16a91f5a"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/jens-daniel-mueller/SOCAT_pCO2_temperature_conversion/tree/16a91f5a98a24c12593ca2f985493ab01dce122f" target="_blank">16a91f5</a> </a>
 </p>
 </div>
-<div id="strongRepositoryversionstrongahrefhttpsgithubcomjensdanielmuellerSOCATpCO2temperatureconversiontreee79060c6e04e8ec270f784d0993a60925b36ca24targetblanke79060ca" class="panel-collapse collapse">
+<div id="strongRepositoryversionstrongahrefhttpsgithubcomjensdanielmuellerSOCATpCO2temperatureconversiontree16a91f5a98a24c12593ca2f985493ab01dce122ftargetblank16a91f5a" class="panel-collapse collapse">
 <div class="panel-body">
 <p>
 Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility. The version displayed above was the version of the Git repository at the time these results were generated. <br><br> Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
@@ -541,6 +541,7 @@ Ignored files:
     Ignored:    .Rproj.user/
     Ignored:    data/_summarized_data/
     Ignored:    data/meta_information/
+    Ignored:    data/model/
 
 </code></pre>
 <p>
@@ -789,9 +790,17 @@ df %&gt;%
 <div id="temperature-offset" class="section level1">
 <h1>Temperature offset</h1>
 <p>fCO<sub>2</sub> in the equilibrator is backcalculated from fCO2rec based on the Takahashi temperature dependence of pCO<sub>2</sub>. fCO2rec is than calculated with a temperature and pCO<sub>2</sub> dependent conversion factor.</p>
-<pre class="r"><code>df &lt;- df %&gt;%
+<pre class="r"><code>model &lt;- 
+  readRDS(here::here(&quot;/data/model&quot;,&quot;T_coeff_model.rds&quot;))
+
+
+
+df &lt;- df %&gt;%
+  mutate(pCO2equ = fCO2rec)
+
+df &lt;- df %&gt;%
   mutate(fCO2equ = fCO2rec / exp(0.0423*d_Tem),
-         t_coeff = 3.92*1e-6*Tequ^2 - 4.27*1e-4*Tequ - 4.384*1e-6*fCO2equ + 4.814*1e-2,
+         t_coeff = predict(model, df),
          fCO2rec_Mueller = fCO2equ * exp(t_coeff*d_Tem),
          d_fCO2 = fCO2rec - fCO2rec_Mueller)</code></pre>
 <pre class="r"><code>maps_SOCAT_recalc &lt;- df %&gt;% 
