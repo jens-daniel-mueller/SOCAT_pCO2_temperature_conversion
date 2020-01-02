@@ -7,9 +7,140 @@ editor_options:
   chunk_output_type: console
 ---
 
-## Introduction
 
-```{r}
+```{r global_options, include = FALSE}
+knitr::opts_chunk$set(warning=FALSE, message=FALSE)
+```
+
+```{r packages}
+
+library(tidyverse)
+library(seacarb)
+library(patchwork)
+
+
 
 ```
+
+
+
+
+# Temperature coefficient
+
+## Dissociation constants
+
+The temperature coefficient of pCO~2~ was computed with the package `seacarb`. Computations were performed for a range of absolute temperature and pCO~2~ levels. Alkalinity and salintiy were assumed constant (AT = 2300 µmol/kg; S = 35). For each set of conditions, following calculations were performed:
+
+1. DIC was calculated from AT and pCO~2,equi~
+2. Temperature was reduced by 1K
+3. pCO~2,insitu~ was calculated for reduced temperature, based on AT and DIC
+4. dln(pCO2)/dT was computed
+
+Computations were performed for different sets of CO~2~ dissociation constant k1 and k2 available in seacarb:
+
+- "l" Lueker et al. (2000)
+- "m10" Millero (2010)
+- "w14" Waters et al. (2014)
+- "r" Roy et al. (1993)
+
+
+```{r compute_T_coeff, fig.asp=1.3}
+
+df <- expand_grid(AT   = 2300,
+                  sal    = 35,
+                  Tequ  = seq(0,30,5),
+                  pCO2equ = seq(200,600,100),
+                  k1k2 = c("l", "m10", "w14", "r"))
+
+
+df <- df %>% 
+  mutate(AT = AT*1e-6,
+         DIC = carb(flag=24, var1=pCO2equ, var2=AT, S=sal, T=Tequ, k1k2=k1k2)[,16],
+         SST = Tequ - 1,
+         pCO2_insitu = carb(flag=15, var1=AT, var2=DIC, S=sal, T=SST, k1k2=k1k2)[,9],
+         d_pCO2 = pCO2equ - pCO2_insitu,
+         T_coeff = (log(pCO2equ) - log(pCO2_insitu))/(Tequ-SST),
+         d_T_coeff_rel = 100*T_coeff/0.0423)
+
+
+df %>% 
+  ggplot(aes(Tequ, T_coeff, col=as.factor(pCO2equ)))+
+  geom_hline(yintercept = 0.0423, col="red")+
+  annotate("text", x = 25, y = 0.043, label = "0.0423", col="red")+
+  geom_line()+
+  geom_point()+
+  scale_color_viridis_d(name = expression(pCO[2]~(µatm)))+
+  labs(x=expression(T[equi]~("°C")), y=expression(dln(pCO[2])/dT))+
+  facet_wrap(~k1k2, labeller = label_both)+
+  theme(legend.position = "bottom")
+
+df %>% 
+  ggplot(aes(Tequ, d_T_coeff_rel, col=as.factor(pCO2equ)))+
+  geom_hline(yintercept = 100, col="red")+
+  geom_line()+
+  geom_point()+
+  scale_color_viridis_d(name = expression(pCO[2]~(µatm)))+
+  labs(x=expression(T[equi]~("°C")), y=expression(dln(pCO[2])/dT~relativ~to~0.0423))+
+  facet_wrap(~k1k2, labeller = label_both)+
+  theme(legend.position = "bottom")
+
+```
+
+## Model fit
+
+A model was fitted to the temperature coefficient determined with the constants by Lueker et al. (2000), as a function of temperature and pCO~2~. The chosen model accounts for a quadratic dependence of the temperature coeffcient on temperature and a linear dependence on pCO~2~
+
+
+```{r fit_T_coeff, fig.asp=1.5}
+
+df <- df %>% 
+  filter(k1k2 == "l") %>% 
+  select(Tequ, pCO2equ, T_coeff)
+
+
+#library(mgcv)
+#model <- gam(T_coeff ~ s(Tequ) + s(pCO2equ), data = df)
+
+model <- lm(T_coeff ~ poly(Tequ,2) + pCO2equ, data = df)
+
+model
+
+
+df <- df %>% 
+  mutate(T_coeff_model = predict(model),
+         d_T_coeff = T_coeff - T_coeff_model)
+
+model_plot <- expand_grid(Tequ  = seq(0,30,0.1),
+                  pCO2equ = seq(200,600,100))
+
+model_plot <- model_plot %>% 
+  mutate(T_coeff = predict(model, model_plot))
+
+
+p1 <- df %>% 
+  ggplot(aes(Tequ, T_coeff, fill=as.factor(pCO2equ)))+
+  geom_hline(yintercept = 0.0423, col="red")+
+  annotate("text", x = 25, y = 0.043, label = "0.0423", col="red")+
+  geom_line(data = model_plot, (aes(Tequ, T_coeff, col=as.factor(pCO2equ))))+
+  geom_point(shape=21)+
+  scale_color_viridis_d(name = expression(pCO[2]~(µatm)))+
+  scale_fill_viridis_d(name = expression(pCO[2]~(µatm)))+
+  scale_y_continuous(breaks = seq(0, 1,0.001))+
+  labs(x=expression(T[equi]~("°C")), y=expression(dln(pCO[2])/dT))
+
+p2 <- df %>% 
+  ggplot(aes(Tequ, d_T_coeff, fill=as.factor(pCO2equ)))+
+  geom_hline(yintercept = 0)+
+  geom_point(shape=21)+
+  scale_fill_viridis_d(name = expression(pCO[2]~(µatm)))+
+  labs(x=expression(T[equi]~("°C")), y=expression(Delta~(dln(pCO[2])/dT)[calc - model]))
+
+
+(p1 / p2)
+
+
+
+```
+
+
 
