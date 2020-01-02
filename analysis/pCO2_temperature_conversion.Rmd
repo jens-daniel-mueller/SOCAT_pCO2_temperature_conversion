@@ -105,6 +105,9 @@ model <- lm(T_coeff ~ poly(Tequ,2) + pCO2equ, data = df)
 
 model
 
+model %>% 
+  saveRDS(here::here("/data/model","T_coeff_model.rds"))
+
 
 df <- df %>% 
   mutate(T_coeff_model = predict(model),
@@ -138,6 +141,41 @@ p2 <- df %>%
 
 (p1 / p2)
 
+```
+
+
+### Comparison to Schneider
+
+The model fitted here was compared to the one fitted by Bernd Schneider, based on the CO~2~ dissociation constants by Mojica Prieto and Millero (2002), which are currently not available in `seacarb`.
+
+
+```{r compare_fit_T_coeff_Schneider, fig.asp=1.5}
+
+df <- df %>% 
+  mutate(T_coeff_Schneider = 3.92*1e-6*Tequ^2 - 4.27*1e-4*Tequ - 4.384*1e-6*pCO2equ + 4.814*1e-2,
+         d_T_coeff_Schneider = T_coeff_Schneider - T_coeff_model)
+
+model_plot <- expand_grid(Tequ  = seq(0,30,0.1),
+                  pCO2equ = seq(200,600,100))
+
+model_plot <- model_plot %>% 
+  mutate(T_coeff_Schneider = 3.92*1e-6*Tequ^2 - 4.27*1e-4*Tequ - 4.384*1e-6*pCO2equ + 4.814*1e-2,)
+
+
+df %>% 
+  ggplot(aes(Tequ, T_coeff, fill=as.factor(pCO2equ)))+
+  geom_hline(yintercept = 0.0423, col="red")+
+  annotate("text", x = 25, y = 0.043, label = "0.0423", col="red")+
+  geom_line(data = model_plot, (aes(Tequ, T_coeff_Schneider,
+                                    col=as.factor(pCO2equ),
+                                    linetype = "Schneider")))+
+  scale_linetype(name="model")+
+  scale_shape_manual(name="model", values = 21)+
+  geom_point(aes(shape="Mueller/Luecker"))+
+  scale_color_viridis_d(name = expression(pCO[2]~(µatm)))+
+  scale_fill_viridis_d(name = expression(pCO[2]~(µatm)))+
+  scale_y_continuous(breaks = seq(0, 1,0.001))+
+  labs(x=expression(T[equi]~("°C")), y=expression(dln(pCO[2])/dT))
 
 
 ```

@@ -292,9 +292,17 @@ fCO2rec is than calculated with a temperature and pCO~2~ dependent conversion fa
 
 ```{r recalc_fCO2}
 
+model <- 
+  readRDS(here::here("/data/model","T_coeff_model.rds"))
+
+
+
+df <- df %>%
+  mutate(pCO2equ = fCO2rec)
+
 df <- df %>%
   mutate(fCO2equ = fCO2rec / exp(0.0423*d_Tem),
-         t_coeff = 3.92*1e-6*Tequ^2 - 4.27*1e-4*Tequ - 4.384*1e-6*fCO2equ + 4.814*1e-2,
+         t_coeff = predict(model, df),
          fCO2rec_Mueller = fCO2equ * exp(t_coeff*d_Tem),
          d_fCO2 = fCO2rec - fCO2rec_Mueller)
 
