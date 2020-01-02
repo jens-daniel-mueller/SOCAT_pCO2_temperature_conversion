@@ -26,6 +26,7 @@ navbar:
 
 output:
   workflowr::wflow_html:
+  number_sections: true
   toc: yes
   toc_float:
     collapsed: false

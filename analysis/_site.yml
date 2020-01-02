@@ -18,6 +18,7 @@ navbar:
     href: https://jens-daniel-mueller.github.io/
 output:
   workflowr::wflow_html:
+    number_sections: true
     toc: yes
     toc_float:
       collapsed: no

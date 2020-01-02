@@ -285,10 +285,10 @@ df %>%
 
 
 
-# Temperature offset
+# Temperature conversion
 
 fCO~2~ in the equilibrator is backcalculated from fCO2rec based on the Takahashi temperature dependence of pCO~2~.
-fCO2rec is than calculated with a temperature and pCO~2~ dependent conversion factor.
+fCO2rec is than re-calculated with the temperature- and pCO~2~ dependent conversion factor determined before.
 
 ```{r recalc_fCO2}
 
@@ -304,7 +304,8 @@ df <- df %>%
   mutate(fCO2equ = fCO2rec / exp(0.0423*d_Tem),
          t_coeff = predict(model, df),
          fCO2rec_Mueller = fCO2equ * exp(t_coeff*d_Tem),
-         d_fCO2 = fCO2rec - fCO2rec_Mueller)
+         d_fCO2 = fCO2rec - fCO2rec_Mueller) %>% 
+  select(-pCO2equ)
 
 
 ```

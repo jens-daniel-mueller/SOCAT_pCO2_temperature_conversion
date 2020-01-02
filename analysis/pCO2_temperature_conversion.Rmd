@@ -149,7 +149,7 @@ p2 <- df %>%
 The model fitted here was compared to the one fitted by Bernd Schneider, based on the CO~2~ dissociation constants by Mojica Prieto and Millero (2002), which are currently not available in `seacarb`.
 
 
-```{r compare_fit_T_coeff_Schneider, fig.asp=1.5}
+```{r compare_fit_T_coeff_Schneider}
 
 df <- df %>% 
   mutate(T_coeff_Schneider = 3.92*1e-6*Tequ^2 - 4.27*1e-4*Tequ - 4.384*1e-6*pCO2equ + 4.814*1e-2,
