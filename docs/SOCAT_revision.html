@@ -411,7 +411,7 @@ div.section {
 
 <h1 class="title toc-ignore">Revision of temperature conversion within SOCAT</h1>
 <h4 class="author">Jens Daniel Müller</h4>
-<h4 class="date">02 January, 2020</h4>
+<h4 class="date">03 January, 2020</h4>
 
 </div>
 
@@ -436,7 +436,7 @@ div.section {
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2020-01-02
+<strong>Last updated:</strong> 2020-01-03
 </p>
 <p>
 <strong>Checks:</strong> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7 <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> 0
@@ -527,10 +527,10 @@ This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomjensdanielmuellerSOCATpCO2temperatureconversiontree9e0e83916f77e7f605765680305d330b02122a4atargetblank9e0e839a"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/jens-daniel-mueller/SOCAT_pCO2_temperature_conversion/tree/9e0e83916f77e7f605765680305d330b02122a4a" target="_blank">9e0e839</a> </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomjensdanielmuellerSOCATpCO2temperatureconversiontreed4fc4a757740e5eba5a08fdb8898e2b91defae42targetblankd4fc4a7a"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/jens-daniel-mueller/SOCAT_pCO2_temperature_conversion/tree/d4fc4a757740e5eba5a08fdb8898e2b91defae42" target="_blank">d4fc4a7</a> </a>
 </p>
 </div>
-<div id="strongRepositoryversionstrongahrefhttpsgithubcomjensdanielmuellerSOCATpCO2temperatureconversiontree9e0e83916f77e7f605765680305d330b02122a4atargetblank9e0e839a" class="panel-collapse collapse">
+<div id="strongRepositoryversionstrongahrefhttpsgithubcomjensdanielmuellerSOCATpCO2temperatureconversiontreed4fc4a757740e5eba5a08fdb8898e2b91defae42targetblankd4fc4a7a" class="panel-collapse collapse">
 <div class="panel-body">
 <p>
 Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility. The version displayed above was the version of the Git repository at the time these results were generated. <br><br> Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
@@ -563,13 +563,16 @@ There are no past versions. Publish this analysis with <code>wflow_publish()</co
 </div>
 <pre class="r"><code>library(tidyverse)
 library(metR)
+library(patchwork)
 
-#theme_set(theme())</code></pre>
+# theme_set(theme(
+#   panel.background = element_rect(
+#     colour = &quot;black&quot;)))</code></pre>
 <div id="socat-data-base" class="section level1">
 <h1><span class="header-section-number">1</span> SOCAT data base</h1>
 <div id="read-and-subset-data" class="section level2">
 <h2><span class="header-section-number">1.1</span> Read and subset data</h2>
-<p>This study is based on SOCATv2019.tsv, thus excluding flag E data stored in a seperate file. Limitation to observations with given equilibrator temperature probably restricts observations to those made on VOS (excluding bouys).</p>
+<p>This study is based on SOCATv2019.tsv, thus excluding flag E data stoyellow in a seperate file. Limitation to observations with given equilibrator temperature probably restricts observations to those made on VOS (excluding bouys).</p>
 <pre class="r"><code># identify the number of rows to skip by playing around with the import data set functionality in RStudio
 
 df &lt;- read_tsv(here::here(&quot;/data&quot;, &quot;SOCATv2019.tsv&quot;), skip = 5859)
@@ -587,13 +590,25 @@ df &lt;- df %&gt;%
          GVCO2 = `GVCO2 [umol/mol]`,
          fCO2rec = `fCO2rec [uatm]`)
 
+nrow_total &lt;- nrow(df)
+
 df &lt;- df %&gt;% 
-  filter(!is.na(Tequ),
-         !is.na(SST),
-         !is.na(fCO2rec))
-  
+  filter(!is.na(Tequ))
+
+nrow_total_Tequ &lt;- nrow(df)
+
+df &lt;- df %&gt;% 
+  filter(!is.na(SST))
+
+nrow_total_Tequ_SST &lt;- nrow(df)
+
+df &lt;- df %&gt;% 
+  filter(fCO2rec &lt; 700, fCO2rec &gt; 100)
+
+nrow_total_Tequ_SST_fCO2rec &lt;- nrow(df)
+
   df_sub_5e6 &lt;- df %&gt;% 
-    sample_n(size = 1e6, replace = FALSE)
+    sample_n(size = 5e6, replace = FALSE)
   
   df_sub_1e6 &lt;- df %&gt;% 
     sample_n(size = 1e6, replace = FALSE)
@@ -624,8 +639,7 @@ df %&gt;%
 <p><img src="figure/SOCAT_revision.Rmd/read_modified_SOCAT_data-1.png" width="672" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>df &lt;- df %&gt;%
   mutate(d_Tem = SST-Tequ,
-         lon = if_else(lon &gt; 190, lon-360, lon)) %&gt;% 
-  filter(fCO2rec &lt; 700, fCO2rec &gt; 100)
+         lon = if_else(lon &gt; 190, lon-360, lon))
 
 
 
@@ -657,14 +671,17 @@ maps_SOCAT_all %&gt;%
   ggplot(aes(lon_int, lat_int, fill=SST))+
   mapWorld+
   geom_tile()+
-  scale_fill_viridis_c(name = &quot;SST (°C)&quot;, option = &quot;inferno&quot;)+
+  scale_fill_viridis_c(name = &quot;SST (°C)&quot;, option = &quot;plasma&quot;, na.value = &quot;black&quot;)+
   labs(x=&quot;Lon (°E)&quot;, y=&quot;Lat (°N)&quot;)+
   scale_x_continuous(breaks = seq(-180, 180, 30), limits = c(-170, 190.5))+
   scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
   coord_quickmap(expand = FALSE)+
   theme(legend.position = &quot;bottom&quot;)</code></pre>
 <p><img src="figure/SOCAT_revision.Rmd/plot_SOCAT_maps_all-1.png" width="672" style="display: block; margin: auto;" /></p>
-<pre class="r"><code># maps_SOCAT_all %&gt;% 
+<pre class="r"><code>#ggsave(here::here(&quot;docs/figure/SOCAT_revision.Rmd&quot;, &quot;map_SST.png&quot;), width = 9, height = 5)
+
+
+# maps_SOCAT_all %&gt;% 
 #   filter(fCO2rec&lt;500) %&gt;% 
 #   ggplot(aes(fCO2rec))+
 #   geom_histogram()
@@ -673,25 +690,29 @@ maps_SOCAT_all %&gt;%
   ggplot(aes(lon_int, lat_int, fill=fCO2rec))+
   mapWorld+
   geom_tile()+
-  scale_fill_viridis_c(name = expression(fCO[2]~(µatm)), limits = c(200, 500))+
+  scale_fill_viridis_c(name = expression(fCO[2]~(µatm)), limits = c(200, 500), na.value = &quot;black&quot;)+
   labs(x=&quot;Lon (°E)&quot;, y=&quot;Lat (°N)&quot;)+
   scale_x_continuous(breaks = seq(-180, 180, 30), limits = c(-170, 190.5))+
   scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
   coord_quickmap(expand = FALSE)+
   theme(legend.position = &quot;bottom&quot;)</code></pre>
 <p><img src="figure/SOCAT_revision.Rmd/plot_SOCAT_maps_all-2.png" width="672" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>maps_SOCAT_all %&gt;% 
+<pre class="r"><code>#ggsave(here::here(&quot;docs/figure/SOCAT_revision.Rmd&quot;, &quot;map_pCO2.png&quot;), width = 9, height = 5)
+
+maps_SOCAT_all %&gt;% 
   ggplot(aes(lon_int, lat_int, fill=d_Tem))+
   mapWorld+
   geom_tile()+
-  scale_fill_divergent(name = expression(Delta~T[SST-equi]~(K)))+
+  scale_fill_divergent(name = expression(Delta~T[SST-equi]~(K)), na.value = &quot;black&quot;)+
   labs(x=&quot;Lon (°E)&quot;, y=&quot;Lat (°N)&quot;)+
   scale_x_continuous(breaks = seq(-180, 180, 30), limits = c(-170, 190.5))+
   scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
   coord_quickmap(expand = FALSE)+
   theme(legend.position = &quot;bottom&quot;)</code></pre>
 <p><img src="figure/SOCAT_revision.Rmd/plot_SOCAT_maps_all-3.png" width="672" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>rm(maps_SOCAT, maps_SOCAT_all, mapWorld)</code></pre>
+<pre class="r"><code>#ggsave(here::here(&quot;docs/figure/SOCAT_revision.Rmd&quot;, &quot;map_d_Tem.png&quot;), width = 9, height = 5)
+
+#rm(maps_SOCAT, maps_SOCAT_all, mapWorld)</code></pre>
 <pre class="r"><code>maps_SOCAT_monthly &lt;- maps_SOCAT %&gt;% 
   group_by(lat_int, lon_int, mon) %&gt;% 
   summarise_all(&quot;mean&quot;)
@@ -715,19 +736,25 @@ maps_SOCAT_monthly %&gt;%
                        labels = seq(-87.5,87.5,5)),
          lat = as.numeric(as.character(lat)),
          SST = cut(SST,
-                       breaks = seq(-4,40,2),
-                       labels = seq(-3,39,2)),
+                       breaks = seq(-4,40,1),
+                       labels = seq(-3.5,39.5,1)),
          SST = as.numeric(as.character(SST)),
          fCO2rec = cut(fCO2rec,
-                       breaks = seq(200,500,20),
-                       labels = seq(210,490,20)),
+                       breaks = seq(100,700,20),
+                       labels = seq(110,690,20)),
          fCO2rec = as.numeric(as.character(fCO2rec)),
          d_Tem = cut(d_Tem,
                        breaks = seq(-5,5,0.2),
                        labels = seq(-4.9,4.9,0.2)),
          d_Tem = as.numeric(as.character(d_Tem))) %&gt;% 
-  drop_na() %&gt;% 
+  #drop_na() %&gt;% 
   select(-c(mon, lon, Tequ))
+
+lat_mean &lt;- df %&gt;% 
+  mutate(lat = cut(lat,
+                       breaks = seq(-90,90,5),
+                       labels = seq(-87.5,87.5,5)),
+         lat = as.numeric(as.character(lat)))
 
 
 SST_lat_pattern &lt;- lat_pattern %&gt;% 
@@ -735,42 +762,78 @@ SST_lat_pattern &lt;- lat_pattern %&gt;%
   summarise(nr=n()) %&gt;% 
   ungroup()
 
+SST_lat_mean &lt;- lat_mean %&gt;% 
+  group_by(lat) %&gt;% 
+  summarise(SST = mean(SST, na.rm = TRUE)) %&gt;% 
+  ungroup()
+
+
 SST_lat_pattern %&gt;% 
   ggplot()+
   geom_raster(aes(SST, lat, fill=log10(nr)))+
+  geom_path(data = SST_lat_mean, aes(SST, lat, col=&quot;Mean&quot;), size=1.5)+
   geom_hline(yintercept = 0)+
-  scale_fill_viridis_c(name = &quot;lg (nr obs)&quot;)+
+  scale_fill_continuous(name = &quot;lg (nr obs)&quot;)+
+  scale_color_manual(name = &quot;&quot;, values = &quot;yellow&quot;)+
   scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
-  labs(y=&quot;Lat (°N)&quot;, x=&quot;SST (K)&quot;)</code></pre>
+  labs(y=&quot;Lat (°N)&quot;, x=&quot;SST (°C)&quot;)+
+  coord_cartesian(expand = 0)+
+  theme(legend.position = &quot;bottom&quot;)</code></pre>
 <p><img src="figure/SOCAT_revision.Rmd/plot_SOCAT_lat_patterns-1.png" width="672" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>fCO2rec_lat_pattern &lt;- lat_pattern %&gt;% 
+<pre class="r"><code>#ggsave(here::here(&quot;docs/figure/SOCAT_revision.Rmd&quot;, &quot;lat_SST.png&quot;), width = 5, height = 5)
+
+
+fCO2rec_lat_pattern &lt;- lat_pattern %&gt;% 
   group_by(lat, fCO2rec) %&gt;% 
   summarise(nr=n()) %&gt;% 
+  ungroup()
+
+fCO2rec_lat_mean &lt;- lat_mean %&gt;% 
+  group_by(lat) %&gt;% 
+  summarise(fCO2rec = mean(fCO2rec, na.rm = TRUE)) %&gt;% 
   ungroup()
 
 fCO2rec_lat_pattern %&gt;% 
   ggplot()+
   geom_raster(aes(fCO2rec, lat, fill=log10(nr)))+
+  geom_path(data = fCO2rec_lat_mean, aes(fCO2rec, lat, col=&quot;Mean&quot;), size=1.5)+
   geom_hline(yintercept = 0)+
-  scale_fill_viridis_c(name = &quot;lg (nr obs)&quot;)+
+  scale_fill_continuous(name = &quot;lg (nr obs)&quot;)+
+  scale_color_manual(name = &quot;&quot;, values = &quot;yellow&quot;)+
   scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
-  labs(y=&quot;Lat (°N)&quot;, x=expression(fCO[2]~(µatm)))</code></pre>
+  labs(y=&quot;Lat (°N)&quot;, x=expression(fCO[2]~(µatm)))+
+  coord_cartesian(expand = 0)+
+  theme(legend.position = &quot;bottom&quot;)</code></pre>
 <p><img src="figure/SOCAT_revision.Rmd/plot_SOCAT_lat_patterns-2.png" width="672" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>d_Tem_lat_pattern &lt;- lat_pattern %&gt;% 
+<pre class="r"><code>#ggsave(here::here(&quot;docs/figure/SOCAT_revision.Rmd&quot;, &quot;lat_pCO2.png&quot;), width = 5, height = 5)
+
+
+d_Tem_lat_pattern &lt;- lat_pattern %&gt;% 
   group_by(lat, d_Tem) %&gt;% 
   summarise(nr=n()) %&gt;% 
+  ungroup()
+
+d_Tem_lat_mean &lt;- lat_mean %&gt;% 
+  group_by(lat) %&gt;% 
+  summarise(d_Tem = mean(d_Tem, na.rm = TRUE)) %&gt;% 
   ungroup()
 
 d_Tem_lat_pattern %&gt;% 
   ggplot()+
   geom_raster(aes(d_Tem, lat, fill=log10(nr)))+
+  geom_path(data = d_Tem_lat_mean, aes(d_Tem, lat, col=&quot;Mean&quot;), size=1.5)+
   geom_hline(yintercept = 0)+
   geom_vline(xintercept = 0)+
-  scale_fill_viridis_c(name = &quot;lg (nr obs)&quot;)+
+  scale_fill_continuous(name = &quot;lg (nr obs)&quot;)+
+  scale_color_manual(name = &quot;&quot;, values = &quot;yellow&quot;)+
   scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
-  labs(y=&quot;Lat (°N)&quot;, x=expression(Delta~T[SST-equi]~(K)))</code></pre>
+  labs(y=&quot;Lat (°N)&quot;, x=expression(Delta~T[SST-equi]~(K)))+
+  coord_cartesian(expand = 0)+
+  theme(legend.position = &quot;bottom&quot;)</code></pre>
 <p><img src="figure/SOCAT_revision.Rmd/plot_SOCAT_lat_patterns-3.png" width="672" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>rm(lat_pattern, d_Tem_lat_pattern, fCO2rec_lat_pattern, SST_lat_pattern)</code></pre>
+<pre class="r"><code>#ggsave(here::here(&quot;docs/figure/SOCAT_revision.Rmd&quot;, &quot;lat_d_Tem.png&quot;), width = 5, height = 5)
+
+rm(lat_pattern, d_Tem_lat_pattern, fCO2rec_lat_pattern, SST_lat_pattern)</code></pre>
 <pre class="r"><code>d_Tem_pCO2_mean &lt;- df %&gt;% 
    mutate(d_Tem = cut(d_Tem,
                        breaks = seq(-5,5,0.2),
@@ -802,7 +865,7 @@ df &lt;- df %&gt;%
   mutate(fCO2equ = fCO2rec / exp(0.0423*d_Tem),
          t_coeff = predict(model, df),
          fCO2rec_Mueller = fCO2equ * exp(t_coeff*d_Tem),
-         d_fCO2 = fCO2rec - fCO2rec_Mueller) %&gt;% 
+         d_fCO2 = fCO2rec_Mueller - fCO2rec) %&gt;% 
   select(-pCO2equ)</code></pre>
 <pre class="r"><code>maps_SOCAT_recalc &lt;- df %&gt;% 
   mutate(lat_int = cut(lat,
@@ -824,34 +887,104 @@ mapWorld &lt;- borders(&quot;world&quot;, colour=&quot;gray60&quot;, fill=&quot;
 
 
 maps_SOCAT_all %&gt;% 
-  ggplot(aes(lon_int, lat_int, fill=t_coeff))+
+  ggplot(aes(lon_int, lat_int, fill=100*t_coeff/0.0423))+
   mapWorld+
   geom_tile()+
-  scale_fill_divergent(name = expression(dln(pCO[2])/dT), midpoint = 0.0423)+
+  scale_fill_divergent(name = expression(dln(pCO[2])/dT~(&quot;%&quot;~of~0.0423)), midpoint = 100, na.value = &quot;black&quot;)+
   labs(x=&quot;Lon (°E)&quot;, y=&quot;Lat (°N)&quot;)+
   scale_x_continuous(breaks = seq(-180, 180, 30), limits = c(-170, 190.5))+
   scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
   coord_quickmap(expand = FALSE)+
   theme(legend.position = &quot;bottom&quot;)</code></pre>
 <p><img src="figure/SOCAT_revision.Rmd/maps_of_SOCAT_recalc-1.png" width="672" style="display: block; margin: auto;" /></p>
-<pre class="r"><code># df %&gt;% 
-#   filter(d_fCO2 &gt; -5, d_fCO2 &lt;5) %&gt;% 
-#   ggplot(aes(d_fCO2))+
-#   geom_histogram()
-
+<pre class="r"><code>#ggsave(here::here(&quot;docs/figure/SOCAT_revision.Rmd&quot;, &quot;map_d_T_coeff.png&quot;), width = 9, height = 5)
 
 maps_SOCAT_all %&gt;% 
   filter(d_fCO2 &gt; -2.5, d_fCO2 &lt;2.5) %&gt;% 
   ggplot(aes(lon_int, lat_int, fill=d_fCO2))+
   mapWorld+
   geom_tile()+
-  scale_fill_divergent(name = expression(Delta~pCO[&quot;2,SOCAT-Mueller&quot;]~(µatm)))+
+  scale_fill_divergent(name = expression(Delta~pCO[&quot;2,Müller-SOCAT&quot;]~(µatm)), na.value = &quot;black&quot;)+
   labs(x=&quot;Lon (°E)&quot;, y=&quot;Lat (°N)&quot;)+
   scale_x_continuous(breaks = seq(-180, 180, 30), limits = c(-170, 190.5))+
   scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
   coord_quickmap(expand = FALSE)+
   theme(legend.position = &quot;bottom&quot;)</code></pre>
 <p><img src="figure/SOCAT_revision.Rmd/maps_of_SOCAT_recalc-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>#ggsave(here::here(&quot;docs/figure/SOCAT_revision.Rmd&quot;, &quot;map_d_fCO2.png&quot;), width = 9, height = 5)</code></pre>
+<pre class="r"><code>lat_pattern &lt;- df %&gt;% 
+  mutate(lat = cut(lat,
+                       breaks = seq(-90,90,5),
+                       labels = seq(-87.5,87.5,5)),
+         lat = as.numeric(as.character(lat)),
+         d_fCO2 = cut(d_fCO2,
+                       breaks = seq(-5,5,0.2),
+                       labels = seq(-4.9,4.9,0.2)),
+         d_fCO2 = as.numeric(as.character(d_fCO2)),
+         t_coeff = cut(100*t_coeff/0.0423,
+                       breaks = seq(50,150,1),
+                       labels = seq(50.5,149.5,1)),
+         t_coeff = as.numeric(as.character(t_coeff)))
+
+lat_mean &lt;- df %&gt;% 
+  mutate(lat = cut(lat,
+                       breaks = seq(-90,90,5),
+                       labels = seq(-87.5,87.5,5)),
+         lat = as.numeric(as.character(lat)))
+
+
+t_coeff_lat_pattern &lt;- lat_pattern %&gt;% 
+  group_by(lat, t_coeff) %&gt;% 
+  summarise(nr=n()) %&gt;% 
+  ungroup()
+
+t_coeff_lat_mean &lt;- lat_mean %&gt;% 
+  group_by(lat) %&gt;% 
+  summarise(t_coeff = mean(100*t_coeff/0.0423, na.rm = TRUE)) %&gt;% 
+  ungroup()
+
+t_coeff_lat_pattern %&gt;% 
+  ggplot()+
+  geom_raster(aes(t_coeff, lat, fill=log10(nr)))+
+  geom_path(data = t_coeff_lat_mean, aes(t_coeff, lat, col=&quot;Mean&quot;), size=1.5)+
+  geom_hline(yintercept = 0)+
+  geom_vline(xintercept = 100)+
+  scale_fill_continuous(name = &quot;lg (nr obs)&quot;)+
+  scale_color_manual(name = &quot;&quot;, values = &quot;yellow&quot;)+
+  scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
+  labs(y=&quot;Lat (°N)&quot;, x=expression(dln(pCO[2])/dT~(&quot;%&quot;~of~0.0423)))+
+  coord_cartesian(expand = 0)+
+  theme(legend.position = &quot;bottom&quot;)</code></pre>
+<p><img src="figure/SOCAT_revision.Rmd/plot_SOCAT_recalc_lat_patterns-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>#ggsave(here::here(&quot;docs/figure/SOCAT_revision.Rmd&quot;, &quot;lat_t_coeff.png&quot;), width = 5, height = 5)
+
+
+
+d_fCO2_lat_pattern &lt;- lat_pattern %&gt;% 
+  group_by(lat, d_fCO2) %&gt;% 
+  summarise(nr=n()) %&gt;% 
+  ungroup()
+
+d_fCO2_lat_mean &lt;- lat_mean %&gt;% 
+  group_by(lat) %&gt;% 
+  summarise(d_fCO2 = mean(d_fCO2, na.rm = TRUE)) %&gt;% 
+  ungroup()
+
+d_fCO2_lat_pattern %&gt;% 
+  ggplot()+
+  geom_raster(aes(d_fCO2, lat, fill=log10(nr)))+
+  geom_path(data = d_fCO2_lat_mean, aes(d_fCO2, lat, col=&quot;Mean&quot;), size=1.5)+
+  geom_hline(yintercept = 0)+
+  geom_vline(xintercept = 0)+
+  scale_fill_continuous(name = &quot;lg (nr obs)&quot;)+
+  scale_color_manual(name = &quot;&quot;, values = &quot;yellow&quot;)+
+  scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
+  scale_x_continuous(limits = c(-2.5, 2.5))+
+  labs(y=&quot;Lat (°N)&quot;, x=expression(Delta~pCO[&quot;2,Müller-SOCAT&quot;]~(µatm)))+
+  coord_cartesian(expand = 0)+
+  theme(legend.position = &quot;bottom&quot;)</code></pre>
+<p><img src="figure/SOCAT_revision.Rmd/plot_SOCAT_recalc_lat_patterns-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>#ggsave(here::here(&quot;docs/figure/SOCAT_revision.Rmd&quot;, &quot;lat_d_fCO2.png&quot;), width = 5, height = 5)</code></pre>
 </div>
 <div id="open-tasks" class="section level1">
 <h1><span class="header-section-number">3</span> Open Tasks</h1>
@@ -884,9 +1017,9 @@ attached base packages:
 [1] stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
- [1] metR_0.5.0      forcats_0.4.0   stringr_1.4.0   dplyr_0.8.3    
- [5] purrr_0.3.3     readr_1.3.1     tidyr_1.0.0     tibble_2.1.3   
- [9] ggplot2_3.2.1   tidyverse_1.3.0
+ [1] patchwork_1.0.0 metR_0.5.0      forcats_0.4.0   stringr_1.4.0  
+ [5] dplyr_0.8.3     purrr_0.3.3     readr_1.3.1     tidyr_1.0.0    
+ [9] tibble_2.1.3    ggplot2_3.2.1   tidyverse_1.3.0
 
 loaded via a namespace (and not attached):
  [1] httr_1.4.1           maps_3.3.0           viridisLite_0.3.0   
@@ -899,23 +1032,22 @@ loaded via a namespace (and not attached):
 [22] htmltools_0.4.0      httpuv_1.5.2         Matrix_1.2-14       
 [25] plyr_1.8.4           pkgconfig_2.0.3      broom_0.5.3         
 [28] haven_2.2.0          scales_1.0.0         later_1.0.0         
-[31] git2r_0.26.1         generics_0.0.2       ellipsis_0.3.0      
-[34] withr_2.1.2          lazyeval_0.2.2       formula.tools_1.7.1 
-[37] cli_1.1.0            magrittr_1.5         crayon_1.3.4        
-[40] readxl_1.3.1         memoise_1.1.0        maptools_0.9-8      
-[43] evaluate_0.14        fs_1.3.1             operator.tools_1.6.3
-[46] nlme_3.1-137         xml2_1.2.2           foreign_0.8-70      
-[49] tools_3.5.0          data.table_1.12.6    hms_0.5.2           
-[52] lifecycle_0.1.0      munsell_0.5.0        reprex_0.3.0        
-[55] compiler_3.5.0       rlang_0.4.1          grid_3.5.0          
-[58] RCurl_1.95-4.12      rstudioapi_0.10      spam_2.3-0.2        
-[61] labeling_0.3         bitops_1.0-6         rmarkdown_2.0       
-[64] gtable_0.3.0         DBI_1.0.0            R6_2.4.0            
-[67] gridExtra_2.3        lubridate_1.7.4      knitr_1.26          
-[70] zeallot_0.1.0        workflowr_1.6.0      rprojroot_1.3-2     
-[73] stringi_1.4.3        Rcpp_1.0.2           fields_9.9          
-[76] vctrs_0.2.0          dbplyr_1.4.2         tidyselect_0.2.5    
-[79] xfun_0.10           </code></pre>
+[31] git2r_0.26.1         generics_0.0.2       withr_2.1.2         
+[34] lazyeval_0.2.2       formula.tools_1.7.1  cli_1.1.0           
+[37] magrittr_1.5         crayon_1.3.4         readxl_1.3.1        
+[40] memoise_1.1.0        maptools_0.9-8       evaluate_0.14       
+[43] fs_1.3.1             operator.tools_1.6.3 nlme_3.1-137        
+[46] xml2_1.2.2           foreign_0.8-70       tools_3.5.0         
+[49] data.table_1.12.6    hms_0.5.2            lifecycle_0.1.0     
+[52] munsell_0.5.0        reprex_0.3.0         compiler_3.5.0      
+[55] rlang_0.4.1          grid_3.5.0           RCurl_1.95-4.12     
+[58] rstudioapi_0.10      spam_2.3-0.2         labeling_0.3        
+[61] bitops_1.0-6         rmarkdown_2.0        gtable_0.3.0        
+[64] DBI_1.0.0            R6_2.4.0             gridExtra_2.3       
+[67] lubridate_1.7.4      knitr_1.26           zeallot_0.1.0       
+[70] workflowr_1.6.0      rprojroot_1.3-2      stringi_1.4.3       
+[73] Rcpp_1.0.2           fields_9.9           vctrs_0.2.0         
+[76] dbplyr_1.4.2         tidyselect_0.2.5     xfun_0.10           </code></pre>
 </div>
 </div>
 
