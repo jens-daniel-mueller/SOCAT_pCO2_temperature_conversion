@@ -15,8 +15,11 @@ knitr::opts_chunk$set(warning=FALSE, message=FALSE)
 
 library(tidyverse)
 library(metR)
+library(patchwork)
 
-#theme_set(theme())
+# theme_set(theme(
+#   panel.background = element_rect(
+#     colour = "black")))
 
 ```
 
@@ -25,7 +28,7 @@ library(metR)
 
 ## Read and subset data
 
-This study is based on SOCATv2019.tsv, thus excluding flag E data stored in a seperate file.
+This study is based on SOCATv2019.tsv, thus excluding flag E data stoyellow in a seperate file.
 Limitation to observations with given equilibrator temperature probably restricts observations to those made on VOS (excluding bouys).
 
 ```{r read_subset_SOCAT_data, eval=FALSE}
@@ -47,13 +50,25 @@ df <- df %>%
          GVCO2 = `GVCO2 [umol/mol]`,
          fCO2rec = `fCO2rec [uatm]`)
 
+nrow_total <- nrow(df)
+
 df <- df %>% 
-  filter(!is.na(Tequ),
-         !is.na(SST),
-         !is.na(fCO2rec))
-  
+  filter(!is.na(Tequ))
+
+nrow_total_Tequ <- nrow(df)
+
+df <- df %>% 
+  filter(!is.na(SST))
+
+nrow_total_Tequ_SST <- nrow(df)
+
+df <- df %>% 
+  filter(fCO2rec < 700, fCO2rec > 100)
+
+nrow_total_Tequ_SST_fCO2rec <- nrow(df)
+
   df_sub_5e6 <- df %>% 
-    sample_n(size = 1e6, replace = FALSE)
+    sample_n(size = 5e6, replace = FALSE)
   
   df_sub_1e6 <- df %>% 
     sample_n(size = 1e6, replace = FALSE)
@@ -92,8 +107,7 @@ df %>%
 
 df <- df %>%
   mutate(d_Tem = SST-Tequ,
-         lon = if_else(lon > 190, lon-360, lon)) %>% 
-  filter(fCO2rec < 700, fCO2rec > 100)
+         lon = if_else(lon > 190, lon-360, lon))
 
 
 
@@ -131,12 +145,15 @@ maps_SOCAT_all %>%
   ggplot(aes(lon_int, lat_int, fill=SST))+
   mapWorld+
   geom_tile()+
-  scale_fill_viridis_c(name = "SST (°C)", option = "inferno")+
+  scale_fill_viridis_c(name = "SST (°C)", option = "plasma", na.value = "black")+
   labs(x="Lon (°E)", y="Lat (°N)")+
   scale_x_continuous(breaks = seq(-180, 180, 30), limits = c(-170, 190.5))+
   scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
   coord_quickmap(expand = FALSE)+
   theme(legend.position = "bottom")
+
+#ggsave(here::here("docs/figure/SOCAT_revision.Rmd", "map_SST.png"), width = 9, height = 5)
+
 
 # maps_SOCAT_all %>% 
 #   filter(fCO2rec<500) %>% 
@@ -147,26 +164,29 @@ maps_SOCAT_all %>%
   ggplot(aes(lon_int, lat_int, fill=fCO2rec))+
   mapWorld+
   geom_tile()+
-  scale_fill_viridis_c(name = expression(fCO[2]~(µatm)), limits = c(200, 500))+
+  scale_fill_viridis_c(name = expression(fCO[2]~(µatm)), limits = c(200, 500), na.value = "black")+
   labs(x="Lon (°E)", y="Lat (°N)")+
   scale_x_continuous(breaks = seq(-180, 180, 30), limits = c(-170, 190.5))+
   scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
   coord_quickmap(expand = FALSE)+
   theme(legend.position = "bottom")
+
+#ggsave(here::here("docs/figure/SOCAT_revision.Rmd", "map_pCO2.png"), width = 9, height = 5)
 
 maps_SOCAT_all %>% 
   ggplot(aes(lon_int, lat_int, fill=d_Tem))+
   mapWorld+
   geom_tile()+
-  scale_fill_divergent(name = expression(Delta~T[SST-equi]~(K)))+
+  scale_fill_divergent(name = expression(Delta~T[SST-equi]~(K)), na.value = "black")+
   labs(x="Lon (°E)", y="Lat (°N)")+
   scale_x_continuous(breaks = seq(-180, 180, 30), limits = c(-170, 190.5))+
   scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
   coord_quickmap(expand = FALSE)+
   theme(legend.position = "bottom")
 
+#ggsave(here::here("docs/figure/SOCAT_revision.Rmd", "map_d_Tem.png"), width = 9, height = 5)
 
-rm(maps_SOCAT, maps_SOCAT_all, mapWorld)
+#rm(maps_SOCAT, maps_SOCAT_all, mapWorld)
 
 ```
 
@@ -201,19 +221,25 @@ lat_pattern <- df %>%
                        labels = seq(-87.5,87.5,5)),
          lat = as.numeric(as.character(lat)),
          SST = cut(SST,
-                       breaks = seq(-4,40,2),
-                       labels = seq(-3,39,2)),
+                       breaks = seq(-4,40,1),
+                       labels = seq(-3.5,39.5,1)),
          SST = as.numeric(as.character(SST)),
          fCO2rec = cut(fCO2rec,
-                       breaks = seq(200,500,20),
-                       labels = seq(210,490,20)),
+                       breaks = seq(100,700,20),
+                       labels = seq(110,690,20)),
          fCO2rec = as.numeric(as.character(fCO2rec)),
          d_Tem = cut(d_Tem,
                        breaks = seq(-5,5,0.2),
                        labels = seq(-4.9,4.9,0.2)),
          d_Tem = as.numeric(as.character(d_Tem))) %>% 
-  drop_na() %>% 
+  #drop_na() %>% 
   select(-c(mon, lon, Tequ))
+
+lat_mean <- df %>% 
+  mutate(lat = cut(lat,
+                       breaks = seq(-90,90,5),
+                       labels = seq(-87.5,87.5,5)),
+         lat = as.numeric(as.character(lat)))
 
 
 SST_lat_pattern <- lat_pattern %>% 
@@ -221,13 +247,25 @@ SST_lat_pattern <- lat_pattern %>%
   summarise(nr=n()) %>% 
   ungroup()
 
+SST_lat_mean <- lat_mean %>% 
+  group_by(lat) %>% 
+  summarise(SST = mean(SST, na.rm = TRUE)) %>% 
+  ungroup()
+
+
 SST_lat_pattern %>% 
   ggplot()+
   geom_raster(aes(SST, lat, fill=log10(nr)))+
+  geom_path(data = SST_lat_mean, aes(SST, lat, col="Mean"), size=1.5)+
   geom_hline(yintercept = 0)+
-  scale_fill_viridis_c(name = "lg (nr obs)")+
+  scale_fill_continuous(name = "lg (nr obs)")+
+  scale_color_manual(name = "", values = "yellow")+
   scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
-  labs(y="Lat (°N)", x="SST (K)")
+  labs(y="Lat (°N)", x="SST (°C)")+
+  coord_cartesian(expand = 0)+
+  theme(legend.position = "bottom")
+
+#ggsave(here::here("docs/figure/SOCAT_revision.Rmd", "lat_SST.png"), width = 5, height = 5)
 
 
 fCO2rec_lat_pattern <- lat_pattern %>% 
@@ -235,13 +273,24 @@ fCO2rec_lat_pattern <- lat_pattern %>%
   summarise(nr=n()) %>% 
   ungroup()
 
+fCO2rec_lat_mean <- lat_mean %>% 
+  group_by(lat) %>% 
+  summarise(fCO2rec = mean(fCO2rec, na.rm = TRUE)) %>% 
+  ungroup()
+
 fCO2rec_lat_pattern %>% 
   ggplot()+
   geom_raster(aes(fCO2rec, lat, fill=log10(nr)))+
+  geom_path(data = fCO2rec_lat_mean, aes(fCO2rec, lat, col="Mean"), size=1.5)+
   geom_hline(yintercept = 0)+
-  scale_fill_viridis_c(name = "lg (nr obs)")+
+  scale_fill_continuous(name = "lg (nr obs)")+
+  scale_color_manual(name = "", values = "yellow")+
   scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
-  labs(y="Lat (°N)", x=expression(fCO[2]~(µatm)))
+  labs(y="Lat (°N)", x=expression(fCO[2]~(µatm)))+
+  coord_cartesian(expand = 0)+
+  theme(legend.position = "bottom")
+
+#ggsave(here::here("docs/figure/SOCAT_revision.Rmd", "lat_pCO2.png"), width = 5, height = 5)
 
 
 d_Tem_lat_pattern <- lat_pattern %>% 
@@ -249,15 +298,25 @@ d_Tem_lat_pattern <- lat_pattern %>%
   summarise(nr=n()) %>% 
   ungroup()
 
+d_Tem_lat_mean <- lat_mean %>% 
+  group_by(lat) %>% 
+  summarise(d_Tem = mean(d_Tem, na.rm = TRUE)) %>% 
+  ungroup()
+
 d_Tem_lat_pattern %>% 
   ggplot()+
   geom_raster(aes(d_Tem, lat, fill=log10(nr)))+
+  geom_path(data = d_Tem_lat_mean, aes(d_Tem, lat, col="Mean"), size=1.5)+
   geom_hline(yintercept = 0)+
   geom_vline(xintercept = 0)+
-  scale_fill_viridis_c(name = "lg (nr obs)")+
+  scale_fill_continuous(name = "lg (nr obs)")+
+  scale_color_manual(name = "", values = "yellow")+
   scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
-  labs(y="Lat (°N)", x=expression(Delta~T[SST-equi]~(K)))
+  labs(y="Lat (°N)", x=expression(Delta~T[SST-equi]~(K)))+
+  coord_cartesian(expand = 0)+
+  theme(legend.position = "bottom")
 
+#ggsave(here::here("docs/figure/SOCAT_revision.Rmd", "lat_d_Tem.png"), width = 5, height = 5)
 
 rm(lat_pattern, d_Tem_lat_pattern, fCO2rec_lat_pattern, SST_lat_pattern)
 
@@ -304,7 +363,7 @@ df <- df %>%
   mutate(fCO2equ = fCO2rec / exp(0.0423*d_Tem),
          t_coeff = predict(model, df),
          fCO2rec_Mueller = fCO2equ * exp(t_coeff*d_Tem),
-         d_fCO2 = fCO2rec - fCO2rec_Mueller) %>% 
+         d_fCO2 = fCO2rec_Mueller - fCO2rec) %>% 
   select(-pCO2equ)
 
 
@@ -333,36 +392,113 @@ mapWorld <- borders("world", colour="gray60", fill="gray60") # create a layer of
 
 
 maps_SOCAT_all %>% 
-  ggplot(aes(lon_int, lat_int, fill=t_coeff))+
+  ggplot(aes(lon_int, lat_int, fill=100*t_coeff/0.0423))+
   mapWorld+
   geom_tile()+
-  scale_fill_divergent(name = expression(dln(pCO[2])/dT), midpoint = 0.0423)+
+  scale_fill_divergent(name = expression(dln(pCO[2])/dT~("%"~of~0.0423)), midpoint = 100, na.value = "black")+
   labs(x="Lon (°E)", y="Lat (°N)")+
   scale_x_continuous(breaks = seq(-180, 180, 30), limits = c(-170, 190.5))+
   scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
   coord_quickmap(expand = FALSE)+
   theme(legend.position = "bottom")
 
-# df %>% 
-#   filter(d_fCO2 > -5, d_fCO2 <5) %>% 
-#   ggplot(aes(d_fCO2))+
-#   geom_histogram()
-
+#ggsave(here::here("docs/figure/SOCAT_revision.Rmd", "map_d_T_coeff.png"), width = 9, height = 5)
 
 maps_SOCAT_all %>% 
   filter(d_fCO2 > -2.5, d_fCO2 <2.5) %>% 
   ggplot(aes(lon_int, lat_int, fill=d_fCO2))+
   mapWorld+
   geom_tile()+
-  scale_fill_divergent(name = expression(Delta~pCO["2,SOCAT-Mueller"]~(µatm)))+
+  scale_fill_divergent(name = expression(Delta~pCO["2,Müller-SOCAT"]~(µatm)), na.value = "black")+
   labs(x="Lon (°E)", y="Lat (°N)")+
   scale_x_continuous(breaks = seq(-180, 180, 30), limits = c(-170, 190.5))+
   scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
   coord_quickmap(expand = FALSE)+
   theme(legend.position = "bottom")
 
+#ggsave(here::here("docs/figure/SOCAT_revision.Rmd", "map_d_fCO2.png"), width = 9, height = 5)
+
+
 ```
 
+```{r plot_SOCAT_recalc_lat_patterns}
+
+lat_pattern <- df %>% 
+  mutate(lat = cut(lat,
+                       breaks = seq(-90,90,5),
+                       labels = seq(-87.5,87.5,5)),
+         lat = as.numeric(as.character(lat)),
+         d_fCO2 = cut(d_fCO2,
+                       breaks = seq(-5,5,0.2),
+                       labels = seq(-4.9,4.9,0.2)),
+         d_fCO2 = as.numeric(as.character(d_fCO2)),
+         t_coeff = cut(100*t_coeff/0.0423,
+                       breaks = seq(50,150,1),
+                       labels = seq(50.5,149.5,1)),
+         t_coeff = as.numeric(as.character(t_coeff)))
+
+lat_mean <- df %>% 
+  mutate(lat = cut(lat,
+                       breaks = seq(-90,90,5),
+                       labels = seq(-87.5,87.5,5)),
+         lat = as.numeric(as.character(lat)))
+
+
+t_coeff_lat_pattern <- lat_pattern %>% 
+  group_by(lat, t_coeff) %>% 
+  summarise(nr=n()) %>% 
+  ungroup()
+
+t_coeff_lat_mean <- lat_mean %>% 
+  group_by(lat) %>% 
+  summarise(t_coeff = mean(100*t_coeff/0.0423, na.rm = TRUE)) %>% 
+  ungroup()
+
+t_coeff_lat_pattern %>% 
+  ggplot()+
+  geom_raster(aes(t_coeff, lat, fill=log10(nr)))+
+  geom_path(data = t_coeff_lat_mean, aes(t_coeff, lat, col="Mean"), size=1.5)+
+  geom_hline(yintercept = 0)+
+  geom_vline(xintercept = 100)+
+  scale_fill_continuous(name = "lg (nr obs)")+
+  scale_color_manual(name = "", values = "yellow")+
+  scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
+  labs(y="Lat (°N)", x=expression(dln(pCO[2])/dT~("%"~of~0.0423)))+
+  coord_cartesian(expand = 0)+
+  theme(legend.position = "bottom")
+
+#ggsave(here::here("docs/figure/SOCAT_revision.Rmd", "lat_t_coeff.png"), width = 5, height = 5)
+
+
+
+d_fCO2_lat_pattern <- lat_pattern %>% 
+  group_by(lat, d_fCO2) %>% 
+  summarise(nr=n()) %>% 
+  ungroup()
+
+d_fCO2_lat_mean <- lat_mean %>% 
+  group_by(lat) %>% 
+  summarise(d_fCO2 = mean(d_fCO2, na.rm = TRUE)) %>% 
+  ungroup()
+
+d_fCO2_lat_pattern %>% 
+  ggplot()+
+  geom_raster(aes(d_fCO2, lat, fill=log10(nr)))+
+  geom_path(data = d_fCO2_lat_mean, aes(d_fCO2, lat, col="Mean"), size=1.5)+
+  geom_hline(yintercept = 0)+
+  geom_vline(xintercept = 0)+
+  scale_fill_continuous(name = "lg (nr obs)")+
+  scale_color_manual(name = "", values = "yellow")+
+  scale_y_continuous(breaks = seq(-90, 90, 30), limits = c(-80, 90))+
+  scale_x_continuous(limits = c(-2.5, 2.5))+
+  labs(y="Lat (°N)", x=expression(Delta~pCO["2,Müller-SOCAT"]~(µatm)))+
+  coord_cartesian(expand = 0)+
+  theme(legend.position = "bottom")
+
+#ggsave(here::here("docs/figure/SOCAT_revision.Rmd", "lat_d_fCO2.png"), width = 5, height = 5)
+
+
+```
 
 
 # Open Tasks
