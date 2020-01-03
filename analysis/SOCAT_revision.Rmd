@@ -152,7 +152,7 @@ maps_SOCAT_all %>%
   coord_quickmap(expand = FALSE)+
   theme(legend.position = "bottom")
 
-#ggsave(here::here("docs/figure/SOCAT_revision.Rmd", "map_SST.png"), width = 9, height = 5)
+ggsave(here::here("output/figures", "map_SST.png"), width = 9, height = 5)
 
 
 # maps_SOCAT_all %>% 
@@ -171,7 +171,7 @@ maps_SOCAT_all %>%
   coord_quickmap(expand = FALSE)+
   theme(legend.position = "bottom")
 
-#ggsave(here::here("docs/figure/SOCAT_revision.Rmd", "map_pCO2.png"), width = 9, height = 5)
+ggsave(here::here("output/figures", "map_pCO2.png"), width = 9, height = 5)
 
 maps_SOCAT_all %>% 
   ggplot(aes(lon_int, lat_int, fill=d_Tem))+
@@ -184,7 +184,7 @@ maps_SOCAT_all %>%
   coord_quickmap(expand = FALSE)+
   theme(legend.position = "bottom")
 
-#ggsave(here::here("docs/figure/SOCAT_revision.Rmd", "map_d_Tem.png"), width = 9, height = 5)
+ggsave(here::here("output/figures", "map_d_Tem.png"), width = 9, height = 5)
 
 #rm(maps_SOCAT, maps_SOCAT_all, mapWorld)
 
@@ -265,7 +265,7 @@ SST_lat_pattern %>%
   coord_cartesian(expand = 0)+
   theme(legend.position = "bottom")
 
-#ggsave(here::here("docs/figure/SOCAT_revision.Rmd", "lat_SST.png"), width = 5, height = 5)
+ggsave(here::here("output/figures", "lat_SST.png"), width = 5, height = 5)
 
 
 fCO2rec_lat_pattern <- lat_pattern %>% 
@@ -290,7 +290,7 @@ fCO2rec_lat_pattern %>%
   coord_cartesian(expand = 0)+
   theme(legend.position = "bottom")
 
-#ggsave(here::here("docs/figure/SOCAT_revision.Rmd", "lat_pCO2.png"), width = 5, height = 5)
+ggsave(here::here("output/figures", "lat_pCO2.png"), width = 5, height = 5)
 
 
 d_Tem_lat_pattern <- lat_pattern %>% 
@@ -316,7 +316,7 @@ d_Tem_lat_pattern %>%
   coord_cartesian(expand = 0)+
   theme(legend.position = "bottom")
 
-#ggsave(here::here("docs/figure/SOCAT_revision.Rmd", "lat_d_Tem.png"), width = 5, height = 5)
+ggsave(here::here("output/figures", "lat_d_Tem.png"), width = 5, height = 5)
 
 rm(lat_pattern, d_Tem_lat_pattern, fCO2rec_lat_pattern, SST_lat_pattern)
 
@@ -402,7 +402,7 @@ maps_SOCAT_all %>%
   coord_quickmap(expand = FALSE)+
   theme(legend.position = "bottom")
 
-#ggsave(here::here("docs/figure/SOCAT_revision.Rmd", "map_d_T_coeff.png"), width = 9, height = 5)
+ggsave(here::here("output/figures", "map_d_T_coeff.png"), width = 9, height = 5)
 
 maps_SOCAT_all %>% 
   filter(d_fCO2 > -2.5, d_fCO2 <2.5) %>% 
@@ -416,7 +416,7 @@ maps_SOCAT_all %>%
   coord_quickmap(expand = FALSE)+
   theme(legend.position = "bottom")
 
-#ggsave(here::here("docs/figure/SOCAT_revision.Rmd", "map_d_fCO2.png"), width = 9, height = 5)
+ggsave(here::here("output/figures", "map_d_fCO2.png"), width = 9, height = 5)
 
 
 ```
@@ -467,7 +467,7 @@ t_coeff_lat_pattern %>%
   coord_cartesian(expand = 0)+
   theme(legend.position = "bottom")
 
-#ggsave(here::here("docs/figure/SOCAT_revision.Rmd", "lat_t_coeff.png"), width = 5, height = 5)
+ggsave(here::here("output/figures", "lat_t_coeff.png"), width = 5, height = 5)
 
 
 
@@ -495,7 +495,7 @@ d_fCO2_lat_pattern %>%
   coord_cartesian(expand = 0)+
   theme(legend.position = "bottom")
 
-#ggsave(here::here("docs/figure/SOCAT_revision.Rmd", "lat_d_fCO2.png"), width = 5, height = 5)
+ggsave(here::here("output/figures", "lat_d_fCO2.png"), width = 5, height = 5)
 
 
 ```
